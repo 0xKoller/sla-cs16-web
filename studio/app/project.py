@@ -21,7 +21,7 @@ from .mdl import MdlError, StudioModel, texture_file_for
 
 DATA = Path(os.environ.get("ESTUDIO_DATA", "/data"))
 BUILD = Path(os.environ.get("ESTUDIO_BUILD", DATA / "build"))
-BASE = Path(os.environ.get("ESTUDIO_BASE", BUILD / "base"))
+BASE = Path(os.environ.get("ESTUDIO_BASE", BUILD / "juego"))
 EDITS = Path(os.environ.get("ESTUDIO_TEXTURAS", DATA / "texturas"))
 OVERRIDES = BUILD / "overrides"
 BASE_ZIP = BUILD / "base.zip"
@@ -29,16 +29,17 @@ VALVE_ZIP = BUILD / "valve.zip"
 STATE = BUILD / "estado.json"
 MANIFEST = ".originales.json"
 
-# Lo que CS 1.6 nunca carga en el navegador (binarios nativos, contenido de Half-Life
-# que no usa). Se deja valve/halflife.wad y todos los *.lst (el motor los necesita).
-ZIP_EXCLUDES = [
-    "*.so", "*.dll", "*.exe", "*.dylib", "*/logs/*",
-    "valve/dlls/*", "valve/maps/*", "valve/media/*", "valve/overviews/*",
-    *[f"valve/sound/{d}/*" for d in (
-        "scientist", "barney", "hgrunt", "holo", "gman", "nihilanth", "garg", "gonarch",
-        "agrunt", "bullchicken", "ichy", "tentacle", "aslave", "zombie", "houndeye",
-        "headcrab", "ambience", "tride")],
-]
+# Lo que no viaja al navegador: código nativo y carpetas que CS 1.6 no usa ahí.
+# Misma lista que el paquete de CSweb (probada con este cliente web). Se dejan
+# valve/halflife.wad y todos los *.lst (el motor los necesita).
+_DIRS_FUERA = {
+    "valve": ["maps", "media", "overviews", "cl_dlls", "dlls", "save", "logs",
+              "controller_configs", "downloads"],
+    "cstrike": ["cl_dlls", "dlls", "overviews", "manual", "save", "logs", "downloads"],
+}
+_EXT_FUERA = [".dll", ".so", ".dylib", ".exe", ".icns", ".ico", ".dem", ".pdb", ".lib", ".vdf", ".fgd"]
+ZIP_EXCLUDES = [f"{g}/{d}/*" for g, ds in _DIRS_FUERA.items() for d in ds] + [f"*{e}" for e in _EXT_FUERA]
+ASSETS_JSON = BUILD / "assets.json"
 
 PLAYER_NAMES = {
     "terror": ("Phoenix Connexion", "T"),
@@ -355,7 +356,7 @@ def ensure_base_zip(log=print) -> None:
     if BASE_ZIP.is_file() and BASE_ZIP.stat().st_size > 0:
         return
     if not base_ready():
-        raise ProyectoError("Todavía no están los archivos del juego en build/base. Corré ./start.sh.")
+        raise ProyectoError("Todavía no están los archivos del juego en build/juego. Corré ./start.sh.")
     log("Armando base.zip con los archivos del juego (una sola vez, tarda un poco)...")
     tmp = BUILD / "base.zip.tmp"
     tmp.unlink(missing_ok=True)
@@ -444,12 +445,32 @@ def apply(log=print) -> dict:
         if wanted:
             _run_zip(["-1", "-q", str(tmpzip), *sorted(wanted)], OVERRIDES)
         os.replace(tmpzip, VALVE_ZIP)
+        _write_assets_meta(wanted)
 
         state = {"aplicado": time.time(), "firma": _edit_signature(), "cambios": report,
                  "segundos": round(time.time() - started, 1)}
         STATE.write_text(json.dumps(state, indent=2, ensure_ascii=False))
         log(f"valve.zip listo en {state['segundos']} s ({len(report)} modelo(s) modificado(s)).")
         return state
+
+
+def _write_assets_meta(wanted: dict[str, bytes]) -> dict:
+    """assets.json: el navegador guarda valve.zip según esta versión y lo vuelve a
+    bajar sólo cuando cambia (o sea, cuando aplicás cambios)."""
+    import zipfile
+
+    st = BASE_ZIP.stat()
+    h = hashlib.sha1(f"base:{st.st_size}:{st.st_mtime_ns}\n".encode())
+    for rel in sorted(wanted):
+        h.update(f"{rel}:{_sha(wanted[rel])}\n".encode())
+    with zipfile.ZipFile(VALVE_ZIP) as z:
+        infos = [i for i in z.infolist() if not i.is_dir()]
+    meta = {"version": h.hexdigest()[:16], "files": len(infos),
+            "size": VALVE_ZIP.stat().st_size, "unpacked": sum(i.file_size for i in infos)}
+    tmp = ASSETS_JSON.with_suffix(".tmp")
+    tmp.write_text(json.dumps(meta, indent=2))
+    os.replace(tmp, ASSETS_JSON)
+    return meta
 
 
 def build(log=print) -> None:

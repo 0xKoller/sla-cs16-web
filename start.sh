@@ -4,19 +4,17 @@
 #   ./start.sh         modo local: solo se puede entrar desde esta compu (recomendado)
 #   ./start.sh lan     también pueden entrar otros dispositivos de tu red (Wi-Fi)
 #
-# La primera vez baja las imágenes de Docker (~600 MB) y copia los archivos del
-# juego; las siguientes arranca en segundos.
+# La primera vez arma las imágenes de Docker y baja los archivos del juego (unos
+# minutos); las siguientes arranca en segundos.
 set -euo pipefail
 cd "$(dirname "$0")"
 . scripts/comun.sh
+. scripts/bajar-juego.sh
 
 MODO="${1:-local}"
-IMAGEN_PROBADA="yohimik/cs-web-server@sha256:ce01d36559ae78446baed1032252b87ee9ec639e4f2f2cdbbdcf75d75359a699"
-IMAGEN_ULTIMA="yohimik/cs-web-server:latest"
-
 case "$MODO" in
   local|lan) ;;
-  -h|--help|ayuda) sed -n '2,8p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+  -h|--help|ayuda) sed -n '2,9p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
   *) falla "No conozco el modo «$MODO». Usá ./start.sh (local) o ./start.sh lan" ;;
 esac
 
@@ -43,6 +41,10 @@ esperar() { # esperar <segundos> <descripción> <comando...>
     sleep 2
   done
   ok "$que"
+}
+
+servidor_en_linea() {
+  curl -fsS "http://$DIR:27016/api/status" 2>/dev/null | grep -q '"serverOnline":true'
 }
 
 # ---------------------------------------------------------------- 1. Docker
@@ -76,7 +78,13 @@ paso "Preparando la configuración ($MODO)"
 touch .env
 chmod 600 .env
 [ -n "$(env_get RCON_PASSWORD)" ] || env_set RCON_PASSWORD "$(od -An -N16 -tx1 /dev/urandom | tr -d ' \n')"
-[ -n "$(env_get GAME_IMAGE)" ] || env_set GAME_IMAGE "$IMAGEN_PROBADA"
+[ -n "$(env_get NOMBRE_SERVIDOR)" ] || env_set NOMBRE_SERVIDOR "CS 1.6 propio"
+[ -n "$(env_get MAPA)" ] || env_set MAPA "de_dust2"
+[ -n "$(env_get MAX_JUGADORES)" ] || env_set MAX_JUGADORES "12"
+[ -n "$(env_get BOTS)" ] || env_set BOTS "4"
+[ -n "$(env_get BOTS_DIFICULTAD)" ] || env_set BOTS_DIFICULTAD "0"
+env_del GAME_IMAGE
+env_del GAME_IP
 
 if [ "$MODO" = "local" ]; then
   DIR="127.0.0.1"
@@ -90,67 +98,44 @@ else
 fi
 env_set MODO "$MODO"
 env_set BIND_ADDR "$DIR"
-env_set GAME_IP "$DIR"
+env_set IP_PUBLICA "$DIR"
 env_set URL_JUEGO "http://$HOST_URL:27016"
 env_set HOST_UID "$(id -u):$(id -g)"
 
-sed -e "s/{{RCON}}/$(env_get RCON_PASSWORD)/" -e "s/{{CHEATS}}/$TRAMPAS/" \
+NOMBRE_SED=$(env_get NOMBRE_SERVIDOR | tr -d '"\\/&;')
+sed -e "s/{{RCON}}/$(env_get RCON_PASSWORD)/" -e "s/{{CHEATS}}/$TRAMPAS/" -e "s/{{NOMBRE}}/$NOMBRE_SED/" \
   config/server.cfg.template > config/server.cfg.tmp
 mv config/server.cfg.tmp config/server.cfg
 chmod 644 config/server.cfg
 mkdir -p build texturas
-ok "Contraseñas generadas en .env y config/server.cfg"
+ok "Configuración lista (contraseñas en .env)"
 
 # ---------------------------------------------------------------- 3. Imágenes
-paso "Bajando las imágenes (la primera vez tarda unos minutos)"
-if ! docker compose pull game proxy; then
-  if [ "$(env_get GAME_IMAGE)" = "$IMAGEN_PROBADA" ]; then
-    aviso "No pude bajar la versión probada del servidor; pruebo con la última publicada."
-    env_set GAME_IMAGE "$IMAGEN_ULTIMA"
-    docker compose pull game proxy || falla "No pude bajar las imágenes. Revisá tu conexión a internet."
-  else
-    falla "No pude bajar las imágenes. Revisá tu conexión a internet."
-  fi
-fi
-docker compose build studio || falla "No pude armar la imagen del estudio."
+paso "Armando las imágenes de Docker (la primera vez tarda unos minutos)"
+docker compose build servidor web studio || falla "No pude armar las imágenes. Revisá tu conexión a internet y volvé a correr ./start.sh"
 ok "Imágenes listas"
 
 # ------------------------------------------------- 4. Archivos del juego (1 vez)
-if [ ! -d build/base/cstrike ] || [ ! -d build/base/valve ]; then
-  paso "Copiando los archivos del juego desde la imagen (una sola vez)"
-  rm -rf build/base.tmp
-  mkdir -p build/base.tmp
-  CID=$(docker create --platform linux/386 "$(env_get GAME_IMAGE)")
-  trap 'docker rm -f "$CID" >/dev/null 2>&1 || true' EXIT
-  docker cp "$CID:/xashds/valve" build/base.tmp/valve
-  docker cp "$CID:/xashds/cstrike" build/base.tmp/cstrike
-  docker rm -f "$CID" >/dev/null 2>&1 || true
-  trap - EXIT
-  [ -d build/base.tmp/cstrike/models ] || falla "La imagen no trae los archivos del juego donde esperaba (/xashds)."
-  rm -rf build/base
-  mv build/base.tmp build/base
-  ok "Archivos copiados a build/base (no se suben a ningún lado)"
-fi
+bajar_juego
 
 # ------------------------------------------------------------- 5. valve.zip
-paso "Armando valve.zip con tus personajes"
+paso "Armando el paquete del juego con tus personajes"
 docker compose run --rm --no-deps studio python -m app.cli build || falla "No pude armar valve.zip."
 
 # ------------------------------------------------------------- 6. Levantar
 paso "Levantando el servidor"
-docker compose up -d --remove-orphans
+docker compose up -d --remove-orphans servidor web studio
 
-URL_PRUEBA="http://$DIR:27016/"
-if ! esperar 90 "La página del juego responde" curl -fsS -o /dev/null "$URL_PRUEBA"; then
-  docker compose logs --tail 40 game proxy || true
-  falla "La página del juego no responde en $URL_PRUEBA. Arriba están los últimos mensajes."
+if ! esperar 90 "La página del juego responde" curl -fsS -o /dev/null "http://$DIR:27016/api/status"; then
+  docker compose logs --tail 40 servidor web || true
+  falla "La página del juego no responde. Arriba están los últimos mensajes."
 fi
 esperar 60 "El estudio responde" curl -fsS -o /dev/null "http://127.0.0.1:27080/api/status" \
   || aviso "El estudio todavía no responde; mirá «docker compose logs studio»."
-if esperar 240 "El servidor de CS terminó de arrancar" sh -c 'docker compose logs game 2>&1 | grep -qi "server started"'; then
-  :
-else
-  aviso "No vi el mensaje de arranque del servidor todavía (en Macs con chip M puede tardar más)."
+printf '  … esperando que el servidor de CS cargue el mapa (en una Mac con chip M puede tardar un par de minutos)\n'
+if ! esperar 300 "El servidor de CS está en línea" servidor_en_linea; then
+  docker compose logs --tail 40 servidor || true
+  aviso "El servidor de CS todavía no responde. Puede seguir cargando: mirá «docker compose logs -f servidor»."
 fi
 
 URL_J=$(env_get URL_JUEGO)
@@ -160,4 +145,5 @@ printf '  Estudio:  http://localhost:27080   (solo desde esta compu)\n'
 if [ "$MODO" = "lan" ]; then
   printf '\n  Pasale el link del juego a quien esté en tu misma red.\n'
 fi
-printf '\n  Para apagar todo: ./stop.sh\n\n'
+printf '\n  Comandos del servidor:  ./servidor.sh "yb add"   ./servidor.sh "changelevel de_inferno"\n'
+printf '  Para apagar todo:       ./stop.sh\n\n'

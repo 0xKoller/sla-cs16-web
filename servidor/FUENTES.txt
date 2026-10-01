@@ -1,0 +1,18 @@
+Binarios del servidor dedicado (Linux i386), copiados sin modificar salvo por
+"strip --strip-debug" para achicarlos. Bajados el 2026-10-01:
+
+  Motor: Xash3D FWGS (GPL-3.0)
+    https://github.com/FWGS/xash3d-fwgs/releases/download/continuous/xash3d-fwgs-linux-i386.tar.gz
+    sha256 b58a244014f29ea5ac2c1b130f34fa9569f4a8b417ee49dc684184b282e4bb45
+    Código fuente: https://github.com/FWGS/xash3d-fwgs
+    Archivos: xash3d, libxash.so, filesystem_stdio.so, libSDL2-2.0.so.0, valve/extras.pk3
+
+  Lógica de CS y bots: CS16Client (ReGameDLL_CS 5.30 + YaPB 4.5.1)
+    https://github.com/Velaron/cs16-client/releases/download/continuous/CS16Client-Linux-i386.tar.gz
+    sha256 a1e4e887fee92b946859562162c1257a70b2329798319e52e46d7a7d6aea38c8
+    Código fuente: https://github.com/Velaron/cs16-client, https://github.com/rehlds/ReGameDLL_CS,
+    https://github.com/yapb/yapb
+    Archivos: cstrike/dlls/cs.so, cstrike/dlls/yapb.so, cstrike/extras.pk3
+
+Ningún binario de Valve se ejecuta: de la instalación de CS 1.6 sólo se usan los
+archivos del juego (mapas, modelos, sonidos), que se bajan con SteamCMD.

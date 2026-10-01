@@ -1,3 +1,4 @@
+# shellcheck shell=bash
 # Funciones compartidas por start.sh, stop.sh y texturas.sh (bash 3.2, macOS y Linux).
 
 # Docker Desktop puede instalar el comando "docker" en lugares que no están en el PATH.
@@ -33,6 +34,15 @@ env_set() {
   cat "$tmp" > .env
   rm -f "$tmp"
   chmod 600 .env
+}
+
+env_del() {
+  local tmp
+  [ -f .env ] || return 0
+  tmp=$(mktemp)
+  grep -vE "^$1=" .env > "$tmp" 2>/dev/null || true
+  cat "$tmp" > .env
+  rm -f "$tmp"
 }
 
 docker_listo() {

@@ -145,7 +145,7 @@ def test_wrong_size_is_resized():
 # --------------------------------------------------------------- proyecto
 @pytest.fixture()
 def proyecto(tmp_path, monkeypatch):
-    base = tmp_path / "build" / "base"
+    base = tmp_path / "build" / "juego"
     (base / "valve" / "maps").mkdir(parents=True)
     (base / "valve" / "liblist.gam").write_text("game Half-Life\n")
     (base / "valve" / "maps" / "c1a0.bsp").write_bytes(b"hl")
@@ -192,6 +192,9 @@ def test_build_excludes_native_and_hl_content(proyecto):
     assert "cstrike/dlls/cs.so" not in names
     assert "valve/maps/c1a0.bsp" not in names
     assert project.status()["pendiente"] is False
+    meta = json.loads(project.ASSETS_JSON.read_text())
+    assert meta["files"] == len([n for n in names if not n.endswith("/")])
+    assert meta["size"] == project.VALVE_ZIP.stat().st_size and len(meta["version"]) == 16
 
 
 def test_edit_apply_and_reset(proyecto):
@@ -210,8 +213,11 @@ def test_edit_apply_and_reset(proyecto):
     assert project.model_info("player/leet")["textures"][1]["edited"] is False
     assert project.status()["pendiente"] is True
 
+    v1 = json.loads(project.ASSETS_JSON.read_text())["version"]
     state = project.apply(log=lambda *_: None)
     assert state["cambios"] == [{"modelo": "player/leet", "texturas": ["Body.png"]}]
+    v2 = json.loads(project.ASSETS_JSON.read_text())["version"]
+    assert v1 != v2  # los navegadores tienen que volver a bajar valve.zip
     with zipfile.ZipFile(project.VALVE_ZIP) as z:
         patched = z.read("cstrike/models/player/leet/leet.mdl")
         assert len([n for n in z.namelist() if n.endswith("leet.mdl")]) == 1

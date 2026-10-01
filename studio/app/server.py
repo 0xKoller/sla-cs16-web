@@ -179,7 +179,7 @@ def main():
     host = os.environ.get("ESTUDIO_HOST", "0.0.0.0")
     port = int(os.environ.get("ESTUDIO_PORT", "8080"))
     if not project.base_ready():
-        print("Aviso: todavía no están los archivos del juego en build/base.", file=sys.stderr)
+        print("Aviso: todavía no están los archivos del juego en build/juego.", file=sys.stderr)
     srv = ThreadingHTTPServer((host, port), Handler)
     srv.daemon_threads = True
     print(f"Estudio escuchando en {host}:{port}", flush=True)

@@ -4,5 +4,6 @@ config/server.cfg
 build/
 texturas/*
 !texturas/LEEME.txt
+web/node_modules/
 __pycache__/
 .pytest_cache/
