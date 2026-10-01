@@ -14,6 +14,27 @@ if [ ! -f /juego/valve/delta.lst ] || [ ! -d /juego/cstrike/maps ]; then
   exit 1
 fi
 
+# ¿Se pueden cargar la lógica de CS y los bots en este sistema?
+falta_algo() { # falta_algo <biblioteca> -> imprime el problema si no se puede cargar
+  salida=$(/lib/ld-linux.so.2 --list "$1" 2>&1) || true
+  case "$salida" in
+    *"not found"*|*"No such file"*|*"cannot"*) printf '%s\n' "$salida" | grep -E "not found|No such|cannot" ;;
+  esac
+}
+problema=$(falta_algo cstrike/dlls/cs.so)
+if [ -n "$problema" ]; then
+  echo "ERROR: no se puede cargar la lógica de CS (cs.so):" >&2
+  echo "$problema" >&2
+  sleep 30
+  exit 1
+fi
+problema=$(falta_algo cstrike/dlls/yapb.so)
+if [ -n "$problema" ]; then
+  echo "Aviso: los bots (YaPB) no se pueden cargar; el servidor sigue sin bots." >&2
+  echo "$problema" >&2
+  touch /tmp/sin-bots
+fi
+
 # Configuración (la genera start.sh a partir de config/server.cfg.template)
 cp /config/server.cfg cstrike/server.cfg
 cp /config/mapcycle.txt cstrike/mapcycle.txt

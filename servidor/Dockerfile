@@ -2,7 +2,7 @@
 # Los archivos del juego (mapas, modelos, sonidos) se montan en /juego (solo lectura).
 
 # ---- 1. Bajar los binarios oficiales (Linux 32 bits) ----------------------------
-FROM --platform=linux/386 debian:bookworm-slim AS descarga
+FROM --platform=linux/amd64 debian:trixie-slim AS descarga
 
 RUN apt-get update \
  && apt-get install -y --no-install-recommends ca-certificates curl binutils \
@@ -20,10 +20,13 @@ COPY preparar-motor.sh ./
 RUN sh preparar-motor.sh
 
 # ---- 2. Imagen final ------------------------------------------------------------
-FROM --platform=linux/386 debian:bookworm-slim
+# Debian 13 (glibc 2.41) con las bibliotecas de 32 bits: ReGameDLL y YaPB piden
+# glibc 2.38 o más nueva. El servidor es de 32 bits; en una Mac con chip M corre emulado.
+FROM --platform=linux/amd64 debian:trixie-slim
 
-RUN apt-get update \
- && apt-get install -y --no-install-recommends unzip \
+RUN dpkg --add-architecture i386 \
+ && apt-get update \
+ && apt-get install -y --no-install-recommends libc6:i386 libstdc++6:i386 libgcc-s1:i386 unzip \
  && rm -rf /var/lib/apt/lists/* \
  && useradd --uid 10001 --create-home --home-dir /home/xash xash
 

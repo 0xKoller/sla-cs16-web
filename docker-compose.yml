@@ -12,7 +12,7 @@ name: cs16-custom
 services:
   servidor:
     build: ./servidor
-    platform: linux/386
+    platform: linux/amd64   # con bibliotecas de 32 bits: el servidor de CS es i386
     restart: unless-stopped
     environment:
       MAPA: "${MAPA:-de_dust2}"
