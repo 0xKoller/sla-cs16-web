@@ -1,0 +1,8 @@
+public/ es el cliente web de CSweb (https://github.com/santiagoPostacchini/CSweb, MIT,
+commit 9dd1703), compilado con "vite build" sin cambios. Incluye:
+  - Xash3D FWGS en WebAssembly (paquete xash3d-fwgs 1.2.2 de webxash3d-fwgs, MIT)
+  - CS16Client en WebAssembly (paquete cs16-client 0.1.2 de webxash3d-fwgs, MIT)
+El archivo grande assets/extras-CECzBvGu.pk3 se baja al armar la imagen (Dockerfile),
+desde la copia de CSweb en ese mismo commit, y se verifica su sha256.
+rtc.mjs y servidor.mjs están basados en server/rtc.mjs, index.mjs y http.mjs de CSweb.
+Licencia de CSweb: LICENCIA-CSweb.txt
