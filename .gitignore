@@ -1,0 +1,8 @@
+# Generado en cada máquina (no se comparte)
+.env
+config/server.cfg
+build/
+texturas/*
+!texturas/LEEME.txt
+__pycache__/
+.pytest_cache/

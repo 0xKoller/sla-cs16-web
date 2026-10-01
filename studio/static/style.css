@@ -1,0 +1,168 @@
+/* Estudio de personajes — paleta y biseles de la interfaz VGUI de CS 1.6 / Steam 2003 */
+:root {
+  --fondo: #4c5844;
+  --panel: #3e4637;
+  --panel-hondo: #2f3628;
+  --hover: #5a6a50;
+  --texto: #d8ded3;
+  --apagado: #a0aa95;
+  --ambar: #c4b550;
+  --seleccion: #958831;
+  --bisel-claro: #8c9282;
+  --bisel-oscuro: #292c21;
+  --error: #c9775c;
+  --visor-oliva: #3a4234;
+  --visor-gris: #6e6e6e;
+  --radio: 0;
+  font-family: Tahoma, Verdana, "Segoe UI", sans-serif;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--texto);
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { margin: 0; height: 100%; }
+body { background: var(--fondo); display: flex; flex-direction: column; min-height: 100vh; }
+
+h1, h2, h3 { font-weight: bold; margin: 0; }
+h1 { font-size: 16px; color: var(--texto); }
+h2 { font-size: 14px; }
+h3 { font-size: 13px; margin-top: 10px; word-break: break-all; }
+p { margin: 0; }
+.muted { color: var(--apagado); }
+.small { font-size: 11px; }
+
+/* Bisel VGUI: claro arriba-izquierda, oscuro abajo-derecha */
+.panel, .bisel {
+  background: var(--panel);
+  border: 1px solid;
+  border-color: var(--bisel-oscuro) var(--bisel-claro) var(--bisel-claro) var(--bisel-oscuro);
+}
+
+.btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  font: inherit; color: var(--texto); text-decoration: none; cursor: pointer;
+  background: var(--fondo);
+  padding: 4px 12px; min-height: 26px;
+  border: 1px solid;
+  border-color: var(--bisel-claro) var(--bisel-oscuro) var(--bisel-oscuro) var(--bisel-claro);
+  border-radius: var(--radio);
+  white-space: nowrap;
+}
+.btn:hover:not(:disabled) { background: var(--hover); }
+.btn:active:not(:disabled) { border-color: var(--bisel-oscuro) var(--bisel-claro) var(--bisel-claro) var(--bisel-oscuro); }
+.btn:disabled { color: var(--apagado); cursor: default; opacity: .7; }
+.btn.primary { color: var(--ambar); font-weight: bold; }
+.btn.file { position: relative; overflow: hidden; }
+.btn.file input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+:focus-visible { outline: 1px dotted var(--ambar); outline-offset: 2px; }
+.btn.file:focus-within { outline: 1px dotted var(--ambar); outline-offset: 2px; }
+
+/* Barra superior */
+.topbar {
+  display: flex; align-items: center; justify-content: space-between; gap: 16px;
+  padding: 10px 16px; background: var(--panel-hondo);
+  border-bottom: 1px solid var(--bisel-oscuro);
+  flex-wrap: wrap;
+}
+.brand { display: flex; align-items: baseline; gap: 10px; }
+.sub { color: var(--apagado); font-size: 12px; }
+.actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.estado { color: var(--apagado); margin-right: 6px; }
+.estado.pendiente { color: var(--ambar); }
+.estado.error { color: var(--error); }
+
+/* Disposición principal */
+.layout {
+  flex: 1; min-height: 0;
+  display: grid; grid-template-columns: 230px minmax(0, 1fr) 300px; gap: 8px;
+  padding: 8px;
+}
+.panel { min-height: 0; display: flex; flex-direction: column; }
+
+/* Lista de modelos */
+.lista { overflow: auto; padding: 6px 0; }
+.lista h2 { font-size: 12px; color: var(--apagado); font-weight: normal; padding: 10px 12px 4px; }
+.lista ul { list-style: none; margin: 0; padding: 0; }
+.lista button {
+  width: 100%; text-align: left; font: inherit; color: var(--texto);
+  background: none; border: 0; padding: 4px 12px; cursor: pointer;
+  display: flex; justify-content: space-between; gap: 8px;
+}
+.lista button:hover { background: var(--hover); }
+.lista button[aria-current="true"] { background: var(--seleccion); color: #fff; }
+.lista .equipo { color: var(--apagado); font-size: 11px; }
+.lista button[aria-current="true"] .equipo { color: #fff; }
+.lista .marca { color: var(--ambar); font-size: 11px; }
+.lista details > summary { list-style: none; cursor: pointer; padding: 10px 12px 4px; color: var(--apagado); font-size: 12px; }
+.lista details > summary::-webkit-details-marker { display: none; }
+.lista details > summary::before { content: "▸ "; }
+.lista details[open] > summary::before { content: "▾ "; }
+
+/* Escena 3D */
+.escena { min-width: 0; }
+.escena-head, .escena-foot {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 8px 12px; flex-wrap: wrap;
+}
+.escena-head { border-bottom: 1px solid var(--bisel-oscuro); }
+.escena-foot { border-top: 1px solid var(--bisel-claro); justify-content: flex-start; }
+.escena-tools { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+.campo { display: flex; align-items: center; gap: 6px; color: var(--apagado); }
+.check { display: flex; align-items: center; gap: 5px; color: var(--apagado); cursor: pointer; }
+select {
+  font: inherit; color: var(--texto); background: var(--panel-hondo);
+  border: 1px solid; border-color: var(--bisel-oscuro) var(--bisel-claro) var(--bisel-claro) var(--bisel-oscuro);
+  padding: 2px 4px; max-width: 220px;
+}
+.visor { position: relative; flex: 1; min-height: 320px; background: var(--visor-oliva); }
+.visor.gris { background: var(--visor-gris); }
+.visor canvas { display: block; width: 100%; height: 100%; position: absolute; inset: 0; }
+.visor-msg {
+  position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+  text-align: center; padding: 24px; color: var(--apagado); max-width: 46ch; margin: auto;
+}
+
+/* Texturas */
+.texturas { padding: 10px 12px; overflow: auto; }
+.tex-lista { list-style: none; margin: 8px 0 0; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+.tex-lista button {
+  width: 100%; font: inherit; color: var(--texto); text-align: left; cursor: pointer;
+  background: var(--panel-hondo); padding: 4px;
+  border: 1px solid; border-color: var(--bisel-oscuro) var(--bisel-claro) var(--bisel-claro) var(--bisel-oscuro);
+}
+.tex-lista button[aria-current="true"] { border-color: var(--ambar); background: var(--seleccion); }
+.tex-lista img { display: block; width: 100%; aspect-ratio: 1 / 1; object-fit: contain; image-rendering: pixelated; background: #222; }
+.tex-lista .nombre { display: block; font-size: 11px; margin-top: 3px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tex-lista .marca { color: var(--ambar); }
+.editor { margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--bisel-claro); }
+.editor-preview { background: #222; padding: 6px; border: 1px dashed transparent; }
+.editor-preview.arrastrando { border-color: var(--ambar); }
+.editor-preview canvas { display: block; width: 100%; max-height: 260px; object-fit: contain; image-rendering: pixelated; }
+.editor-preview p { margin-top: 4px; text-align: center; }
+.slider { display: grid; grid-template-columns: 1fr auto; gap: 2px 8px; margin-top: 10px; color: var(--apagado); }
+.slider input { grid-column: 1 / -1; width: 100%; accent-color: var(--ambar); }
+.slider output { color: var(--texto); font-variant-numeric: tabular-nums; }
+.editor-btns { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+
+/* Aviso flotante */
+.toast {
+  position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%);
+  max-width: min(560px, calc(100vw - 32px));
+  background: var(--panel-hondo); color: var(--texto); padding: 10px 14px;
+  border: 1px solid; border-color: var(--bisel-claro) var(--bisel-oscuro) var(--bisel-oscuro) var(--bisel-claro);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, .35);
+}
+.toast.error { color: var(--error); }
+.toast a { color: var(--ambar); }
+
+@media (max-width: 980px) {
+  .layout { grid-template-columns: 1fr; }
+  .lista { max-height: 220px; }
+  .visor { min-height: 300px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  * { scroll-behavior: auto !important; }
+}

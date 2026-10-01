@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Estudio de personajes</title>
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="/static/style.css">
+<script type="importmap">
+{ "imports": {
+    "three": "/static/vendor/three.module.min.js",
+    "three/addons/": "/static/vendor/addons/"
+} }
+</script>
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">
+    <h1>Estudio de personajes</h1>
+    <span class="sub">Counter-Strike 1.6</span>
+  </div>
+  <div class="actions">
+    <p id="estado" class="estado" role="status" aria-live="polite">Cargando…</p>
+    <button id="aplicar" class="btn primary" type="button" disabled>Aplicar al juego</button>
+    <a id="abrir-juego" class="btn" href="http://localhost:27016" target="_blank" rel="noopener">Abrir el juego</a>
+  </div>
+</header>
+
+<main class="layout">
+  <nav class="panel lista" aria-label="Modelos">
+    <div id="categorias"></div>
+  </nav>
+
+  <section class="panel escena" aria-label="Vista 3D">
+    <div class="escena-head">
+      <div>
+        <h2 id="modelo-nombre">Elegí un modelo</h2>
+        <p id="modelo-ruta" class="muted"></p>
+      </div>
+      <div class="escena-tools">
+        <label class="campo">Pose
+          <select id="pose" disabled></select>
+        </label>
+        <label class="check"><input id="girar" type="checkbox" checked> Girar solo</label>
+        <label class="check"><input id="fondo-gris" type="checkbox"> Fondo gris</label>
+      </div>
+    </div>
+    <div id="visor" class="visor">
+      <p id="visor-vacio" class="visor-msg">Elegí un personaje a la izquierda para verlo en 3D y cambiarle las texturas.</p>
+    </div>
+    <div class="escena-foot">
+      <button id="exportar" class="btn" type="button" disabled>Copiar texturas a la carpeta</button>
+      <button id="restaurar-modelo" class="btn" type="button" disabled>Restaurar modelo original</button>
+      <p id="carpeta" class="muted"></p>
+    </div>
+  </section>
+
+  <aside class="panel texturas" aria-label="Texturas">
+    <h2>Texturas</h2>
+    <ul id="lista-texturas" class="tex-lista"></ul>
+    <div id="editor" class="editor" hidden>
+      <div class="editor-preview" id="drop">
+        <canvas id="tex-canvas"></canvas>
+        <p class="muted small">Soltá una imagen acá para reemplazar esta textura.</p>
+      </div>
+      <h3 id="tex-nombre"></h3>
+      <p id="tex-info" class="muted small"></p>
+      <label class="slider">Tono <output id="o-tono">0°</output>
+        <input id="s-tono" type="range" min="-180" max="180" value="0">
+      </label>
+      <label class="slider">Saturación <output id="o-sat">100%</output>
+        <input id="s-sat" type="range" min="0" max="200" value="100">
+      </label>
+      <label class="slider">Brillo <output id="o-brillo">100%</output>
+        <input id="s-brillo" type="range" min="20" max="200" value="100">
+      </label>
+      <div class="editor-btns">
+        <button id="guardar-ajuste" class="btn primary" type="button" disabled>Guardar ajuste</button>
+        <button id="deshacer-ajuste" class="btn" type="button" disabled>Deshacer ajuste</button>
+      </div>
+      <div class="editor-btns">
+        <label class="btn file">Subir imagen<input id="subir" type="file" accept="image/png,image/jpeg,image/bmp,image/gif"></label>
+        <a id="descargar" class="btn" href="#" download>Descargar PNG</a>
+        <button id="restaurar-tex" class="btn" type="button">Restaurar original</button>
+      </div>
+    </div>
+  </aside>
+</main>
+
+<div id="toast" class="toast" role="alert" hidden></div>
+
+<script type="module" src="/static/app.js"></script>
+</body>
+</html>

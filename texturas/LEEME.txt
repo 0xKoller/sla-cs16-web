@@ -1,0 +1,7 @@
+Acá van las texturas que edites. Cada modelo tiene su carpeta:
+
+  texturas/personajes/<modelo>/   (por ejemplo texturas/personajes/leet/)
+  texturas/armas/<modelo>/
+
+Para empezar, abrí el estudio (http://localhost:27080), elegí un personaje y tocá
+«Copiar texturas a la carpeta». También podés correr: ./texturas.sh exportar player/leet
