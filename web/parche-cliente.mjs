@@ -52,6 +52,11 @@ const CAMBIOS = [
       'function guardShortcuts(e){',
   },
   {
+    nombre: 'aviso: tecla de consola',
+    viejo: 'ESC menú · ` consola',
+    nuevo: 'ESC menú · º consola (al lado del 1)',
+  },
+  {
     nombre: 'navegador sin soporte',
     viejo: 'Usá Chrome, Edge o Firefox actualizados."),playButton.disabled=!0);',
     nuevo: 'Usá Chrome, Edge o Firefox actualizados."),playButton.disabled=!0,playButton.dataset.bloqueado="1");',

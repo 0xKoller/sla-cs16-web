@@ -5,6 +5,10 @@ const TITULO = 'SLA · Counter-Strike 1.6';
 const BAJADA = 'Siguiendo los acontecimientos';
 
 document.title = TITULO;
+// El motor del juego cambia el título de la pestaña al arrancar: lo volvemos a poner.
+new MutationObserver(() => {
+    if (document.title !== TITULO) document.title = TITULO;
+}).observe(document.head, { subtree: true, childList: true, characterData: true });
 document.querySelector('meta[name="theme-color"]')?.setAttribute('content', '#181818');
 
 function logo(clase) {

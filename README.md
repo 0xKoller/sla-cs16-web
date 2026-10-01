@@ -97,11 +97,11 @@ La carpeta `marca/` tiene todo lo de la marca y se ve **sin rearmar nada**:
 
 - `marca/web/`: colores, tipografía (Geist), logo y textos de la página del juego.
   Se ve con solo recargar la página.
-- `marca/juego/`: archivos que van tal cual adentro del juego: el fondo del menú y el
-  color del HUD. Se aplican con «Aplicar al juego» en el estudio (o
+- `marca/juego/`: archivos que van tal cual adentro del juego: los colores del menú y
+  el color del HUD. Se aplican con «Aplicar al juego» en el estudio (o
   `./texturas.sh aplicar`) y recargando la página.
-- `marca/fuente/generar.py`: arma el fondo del menú, el favicon y el color del HUD a
-  partir del logo (`marca/web/sla-logo.svg`).
+- `marca/fuente/generar.py`: arma el favicon, los colores del menú y del HUD a partir
+  del logo (`marca/web/sla-logo.svg`).
 
 El nombre del servidor está en `.env` (`NOMBRE_SERVIDOR`) y el mensaje de bienvenida
 en `config/motd.txt`; esos dos se aplican con `./start.sh`.

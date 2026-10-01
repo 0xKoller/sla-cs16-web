@@ -3,10 +3,12 @@
 
 Salida:
   marca/web/favicon.svg, marca/web/sla-globo.svg      (página del juego)
-  marca/juego/cstrike/resource/BackgroundLayout.txt   (fondo del menú del juego)
-  marca/juego/cstrike/resource/background/sla_*.tga
   marca/juego/cstrike/autoexec.cfg                    (color del HUD)
-  marca/fuente/vista-menu.png                         (vista previa del fondo)
+  marca/juego/cstrike/gfx/shell/colors.lst            (colores del menú del juego)
+  marca/fuente/vista-menu.png                         (arte 16:10 con el logo, por si hace falta)
+
+Nota: el menú de la versión web del motor no dibuja imagen de fondo (se compila sin esa
+parte para ahorrar memoria), por eso la marca adentro del juego va por colores.
 
 Necesita: pip install cairosvg pillow
 Uso:      python3 marca/fuente/generar.py
@@ -37,11 +39,8 @@ VERDE = (13, 135, 80)         # --primary #0d8750
 VERDE_HUD = (19, 196, 116)    # el mismo verde, más luminoso para el HUD (se dibuja sumando luz)
 LOGO_GRIS = "#EAEAEA"
 
-# Fondo del menú: 16:10. El menú lo escala para cubrir la pantalla desde la esquina
-# superior izquierda (en 16:9 se recorta abajo, en 4:3 a la derecha). Los botones del
-# menú van a la izquierda, por eso el logo está corrido a la derecha.
+# Arte 16:10 con el logo corrido a la derecha (deja lugar a los botones del menú).
 ANCHO, ALTO = 1600, 1000
-TESELA = 256
 
 LOGO_SVG = (WEB / "sla-logo.svg").read_text()
 _paths = re.findall(r"<path\b[^>]*/>", LOGO_SVG)
@@ -147,29 +146,12 @@ def _texto_espaciado(d: ImageDraw.ImageDraw, xy, texto: str, fuente, color, espa
         x += d.textlength(ch, font=fuente) + espacio
 
 
-def escribir_teselas(img: Image.Image) -> None:
-    carpeta = JUEGO / "cstrike" / "resource" / "background"
-    carpeta.mkdir(parents=True, exist_ok=True)
-    for viejo in carpeta.glob("sla_*.tga"):
-        viejo.unlink()
-    lineas = [f"resolution\t{ANCHO}\t{ALTO}", ""]
-    for fila, y in enumerate(range(0, ALTO, TESELA), start=1):
-        for col, x in enumerate(range(0, ANCHO, TESELA)):
-            letra = "abcdefghij"[col]
-            nombre = f"sla_{fila}_{letra}.tga"
-            pieza = img.crop((x, y, min(x + TESELA, ANCHO), min(y + TESELA, ALTO)))
-            pieza.save(carpeta / nombre)  # TGA de 24 bits sin comprimir, de abajo hacia arriba (como los de CS)
-            lineas.append(f"resource/background/{nombre}\tfit\t{x}\t{y}")
-        lineas.append("")
-    (JUEGO / "cstrike" / "resource" / "BackgroundLayout.txt").write_text("\n".join(lineas))
-
 
 def main() -> None:
     (WEB / "favicon.svg").write_text(favicon_svg())
     (WEB / "sla-globo.svg").write_text(globo_svg())
 
     img = fondo_menu()
-    escribir_teselas(img)
     img.resize((ANCHO // 2, ALTO // 2), Image.LANCZOS).save(AQUI / "vista-menu.png")
 
     r, g, b = VERDE_HUD
@@ -177,6 +159,22 @@ def main() -> None:
     (JUEGO / "cstrike" / "autoexec.cfg").write_text(
         "// Marca SLA (lo genera marca/fuente/generar.py). El juego lo corre al arrancar.\n"
         f'hud_color "{r} {g} {b}"\n'
+    )
+    shell = JUEGO / "cstrike" / "gfx" / "shell"
+    shell.mkdir(parents=True, exist_ok=True)
+    colores = {
+        "HELP_COLOR": APAGADO,                # textos de ayuda
+        "PROMPT_BG_COLOR": TARJETA,           # fondo de los diálogos
+        "PROMPT_TEXT_COLOR": (234, 234, 234), # botones y textos del menú (gris del logo)
+        "PROMPT_FOCUS_COLOR": VERDE_HUD,      # botón con el mouse encima
+        "INPUT_TEXT_COLOR": TEXTO,
+        "INPUT_BG_COLOR": FONDO,
+        "INPUT_FG_COLOR": (70, 70, 70),
+        "CON_TEXT_COLOR": VERDE_HUD,          # texto de la consola
+    }
+    (shell / "colors.lst").write_text(
+        "// Colores del menú con la marca SLA (lo genera marca/fuente/generar.py)\n"
+        + "".join(f"{k}\t{c[0]} {c[1]} {c[2]}\n" for k, c in colores.items())
     )
     print("Listo: marca/web y marca/juego actualizados. Aplicá los cambios y recargá el juego.")
 
