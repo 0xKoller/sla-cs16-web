@@ -239,6 +239,39 @@ def test_edit_apply_and_reset(proyecto):
     assert not any(p.is_file() for p in (project.OVERRIDES).rglob("*"))
 
 
+def test_marca_files_go_into_zip(proyecto):
+    project, tmp = proyecto
+    project.build(log=lambda *_: None)
+    v1 = json.loads(project.ASSETS_JSON.read_text())["version"]
+    marca = tmp / "marca" / "juego"
+    (marca / "cstrike" / "resource").mkdir(parents=True)
+    (marca / "cstrike" / "autoexec.cfg").write_text('hud_color "19 196 116"\n')
+    (marca / "cstrike" / "resource" / "BackgroundLayout.txt").write_text("resolution 1600 1000\n")
+    (marca / "cstrike" / "delta.lst").write_text("pisado")  # reemplaza uno del juego
+    (marca / "LEEME.txt").write_text("no va al juego")
+    (marca / "cstrike" / ".DS_Store").write_bytes(b"mac")
+    assert project.status()["pendiente"] is True
+    state = project.apply(log=lambda *_: None)
+    assert {"marca": 3} in state["cambios"]
+    with zipfile.ZipFile(project.VALVE_ZIP) as z:
+        names = z.namelist()
+        assert z.read("cstrike/autoexec.cfg").startswith(b"hud_color")
+        assert z.read("cstrike/delta.lst") == b"pisado"
+        assert names.count("cstrike/delta.lst") == 1
+        assert "LEEME.txt" not in names and "cstrike/.DS_Store" not in names
+    assert json.loads(project.ASSETS_JSON.read_text())["version"] != v1
+    assert project.status()["pendiente"] is False
+    # la base no se toca y al sacar la marca vuelve el original
+    assert (project.BASE / "cstrike" / "delta.lst").read_text() == "delta"
+    for f in sorted(marca.rglob("*"), reverse=True):
+        f.unlink() if f.is_file() else f.rmdir()
+    assert project.status()["pendiente"] is True
+    project.apply(log=lambda *_: None)
+    with zipfile.ZipFile(project.VALVE_ZIP) as z:
+        assert z.read("cstrike/delta.lst") == b"delta"
+        assert "cstrike/autoexec.cfg" not in z.namelist()
+
+
 def test_texture_file_models(proyecto):
     project, tmp = proyecto
     info = project.model_info("v_ak47")

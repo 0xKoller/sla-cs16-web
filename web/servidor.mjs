@@ -25,6 +25,9 @@ const cfg = {
     password: env('CONTRASENA', ''),
     data: env('DATOS', '/data/build'),
     publicDir: env('PUBLICO', path.join(HERE, 'public')),
+    // Capa de marca (logo, colores, textos de la página). Se lee en cada pedido:
+    // los cambios se ven con solo recargar, sin rearmar la imagen.
+    marcaDir: env('MARCA', '/data/marca/web'),
 };
 cfg.maxPeers = cfg.maxPlayers + 4;
 
@@ -40,6 +43,9 @@ const MIME = {
     '.zip': 'application/zip',
     '.pk3': 'application/octet-stream',
     '.txt': 'text/plain; charset=utf-8',
+    '.woff2': 'font/woff2',
+    '.jpg': 'image/jpeg',
+    '.webp': 'image/webp',
 };
 const SECURITY = {
     'X-Content-Type-Options': 'nosniff',
@@ -117,6 +123,43 @@ function sendFile(req, res, file, cacheControl, etag) {
 }
 
 const PUBLIC = path.resolve(cfg.publicDir);
+const MARCA = path.resolve(cfg.marcaDir);
+
+function mtimeDe(file) {
+    try {
+        return Math.floor(fs.statSync(file).mtimeMs).toString(36);
+    } catch {
+        return null;
+    }
+}
+
+// index.html + capa de marca: si existen marca.css / marca.js / favicon.svg en la carpeta
+// de marca, se agregan a la página (con la fecha del archivo en la URL para no usar uno viejo).
+function sendIndex(req, res) {
+    let html;
+    try {
+        html = fs.readFileSync(path.join(PUBLIC, 'index.html'), 'utf8');
+    } catch {
+        res.writeHead(404, SECURITY);
+        res.end('No encontrado');
+        return;
+    }
+    const css = mtimeDe(path.join(MARCA, 'marca.css'));
+    const js = mtimeDe(path.join(MARCA, 'marca.js'));
+    const icono = mtimeDe(path.join(MARCA, 'favicon.svg'));
+    if (icono) html = html.replace(/<link rel="icon"[^>]*>/, `<link rel="icon" href="/marca/favicon.svg?v=${icono}">`);
+    if (css) html = html.replace('</head>', `<link rel="stylesheet" href="/marca/marca.css?v=${css}">\n</head>`);
+    if (js) html = html.replace('</body>', `<script type="module" src="/marca/marca.js?v=${js}"></script>\n</body>`);
+    const body = Buffer.from(html);
+    res.writeHead(200, {
+        'Content-Type': MIME['.html'],
+        'Content-Length': body.length,
+        'Cache-Control': 'no-cache',
+        ...SECURITY,
+    });
+    res.end(req.method === 'HEAD' ? undefined : body);
+}
+
 function handler(req, res) {
     let url;
     try {
@@ -161,7 +204,23 @@ function handler(req, res) {
         return;
     }
 
-    const rel = pathname === '/' ? 'index.html' : pathname.replace(/^\/+/, '');
+    if (pathname === '/' || pathname === '/index.html') {
+        sendIndex(req, res);
+        return;
+    }
+
+    if (pathname.startsWith('/marca/')) {
+        const archivo = path.resolve(MARCA, pathname.slice('/marca/'.length));
+        if (!archivo.startsWith(MARCA + path.sep)) {
+            res.writeHead(403, SECURITY);
+            res.end();
+            return;
+        }
+        sendFile(req, res, archivo, 'no-cache');
+        return;
+    }
+
+    const rel = pathname.replace(/^\/+/, '');
     const file = path.resolve(PUBLIC, rel);
     if (!file.startsWith(PUBLIC + path.sep)) {
         res.writeHead(403, SECURITY);

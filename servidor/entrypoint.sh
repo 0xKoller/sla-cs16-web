@@ -38,6 +38,8 @@ fi
 # Configuración (la genera start.sh a partir de config/server.cfg.template)
 cp /config/server.cfg cstrike/server.cfg
 cp /config/mapcycle.txt cstrike/mapcycle.txt
+# Mensaje de bienvenida (texto plano: el cliente web no muestra HTML)
+[ -f /config/motd.txt ] && cp /config/motd.txt cstrike/motd.txt
 touch cstrike/listip.cfg cstrike/banned.cfg
 
 # Bots YaPB: un yapb.cfg suelto tiene prioridad sobre el que viene en extras.pk3

@@ -462,3 +462,11 @@ window.addEventListener("focus", async () => {
 refreshStatus();
 loadModels(true).catch((e) => toast(escapeHtml(e.message), { error: true }));
 setInterval(refreshStatus, 5000);
+
+// Cambiar el #modelo de la dirección (o volver atrás) abre ese modelo.
+window.addEventListener("hashchange", () => {
+  const id = decodeURIComponent(location.hash.slice(1));
+  if (id && id !== state.modelId && document.querySelector(`#categorias button[data-id="${CSS.escape(id)}"]`)) {
+    selectModel(id);
+  }
+});

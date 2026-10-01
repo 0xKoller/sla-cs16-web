@@ -78,7 +78,7 @@ paso "Preparando la configuración ($MODO)"
 touch .env
 chmod 600 .env
 [ -n "$(env_get RCON_PASSWORD)" ] || env_set RCON_PASSWORD "$(od -An -N16 -tx1 /dev/urandom | tr -d ' \n')"
-[ -n "$(env_get NOMBRE_SERVIDOR)" ] || env_set NOMBRE_SERVIDOR "CS 1.6 propio"
+[ -n "$(env_get NOMBRE_SERVIDOR)" ] || env_set NOMBRE_SERVIDOR "SLA | Counter-Strike 1.6"
 [ -n "$(env_get MAPA)" ] || env_set MAPA "de_dust2"
 [ -n "$(env_get MAX_JUGADORES)" ] || env_set MAX_JUGADORES "12"
 [ -n "$(env_get BOTS)" ] || env_set BOTS "4"
@@ -125,6 +125,9 @@ docker compose run --rm --no-deps studio python -m app.cli build || falla "No pu
 # ------------------------------------------------------------- 6. Levantar
 paso "Levantando el servidor"
 docker compose up -d --remove-orphans servidor web studio
+# El estudio se recrea siempre: si build/juego cambió con el estudio prendido, la carpeta
+# compartida le queda vieja ("Operation not permitted").
+docker compose up -d --no-deps --force-recreate studio
 
 if ! esperar 90 "La página del juego responde" curl -fsS -o /dev/null "http://$DIR:27016/api/status"; then
   docker compose logs --tail 40 servidor web || true

@@ -15,6 +15,9 @@ ARG EXTRAS_URL=https://raw.githubusercontent.com/santiagoPostacchini/CSweb/9dd17
 ARG EXTRAS_SHA256=49d5e00ce50ed01aace3a1c2035a2959c3f7e4457ca2b6c31d01e4cd2a7a5d69
 RUN node -e "const fs=require('fs'),c=require('crypto');(async()=>{const r=await fetch(process.argv[1]);if(!r.ok)throw new Error('descarga '+r.status);const b=Buffer.from(await r.arrayBuffer());const h=c.createHash('sha256').update(b).digest('hex');if(h!==process.argv[2])throw new Error('sha256 distinto: '+h);fs.writeFileSync('public/assets/extras-CECzBvGu.pk3',b);console.log('extras.pk3 ok',b.length)})().catch(e=>{console.error(e.message);process.exit(1)})" "$EXTRAS_URL" "$EXTRAS_SHA256"
 
+# Ajustes al cliente (controles táctiles, tecla de consola, «Jugar» espera al servidor).
+RUN node parche-cliente.mjs public
+
 USER node
 ENV NODE_ENV=production
 CMD ["node", "servidor.mjs"]

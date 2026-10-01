@@ -1,0 +1,10 @@
+SLA - Siguiendo los acontecimientos
+
+Bienvenido al servidor de Counter-Strike 1.6 de SLA.
+
+  M      elegir equipo
+  B      comprar armas
+  Tab    ver puntajes
+  Y      chat
+
+slatv.live

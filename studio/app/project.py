@@ -23,6 +23,9 @@ DATA = Path(os.environ.get("ESTUDIO_DATA", "/data"))
 BUILD = Path(os.environ.get("ESTUDIO_BUILD", DATA / "build"))
 BASE = Path(os.environ.get("ESTUDIO_BASE", BUILD / "juego"))
 EDITS = Path(os.environ.get("ESTUDIO_TEXTURAS", DATA / "texturas"))
+# Archivos de marca que van tal cual dentro de valve.zip (fondo del menú, autoexec.cfg...).
+# La ruta adentro de marca/juego es la misma que en el juego: cstrike/resource/...
+MARCA_JUEGO = Path(os.environ.get("ESTUDIO_MARCA", DATA / "marca" / "juego"))
 OVERRIDES = BUILD / "overrides"
 BASE_ZIP = BUILD / "base.zip"
 VALVE_ZIP = BUILD / "valve.zip"
@@ -383,6 +386,31 @@ def _edit_signature() -> list:
     return sorted(sig)
 
 
+def _marca_files() -> dict[str, Path]:
+    """Archivos de marca/juego, por ruta dentro del juego (ej. cstrike/autoexec.cfg)."""
+    out: dict[str, Path] = {}
+    if not MARCA_JUEGO.is_dir():
+        return out
+    for f in sorted(MARCA_JUEGO.rglob("*")):
+        rel = f.relative_to(MARCA_JUEGO)
+        if not f.is_file() or any(part.startswith(".") for part in rel.parts):
+            continue
+        if rel.parts[0] not in ("valve", "cstrike"):
+            continue  # solo lo que va dentro del juego (LEEME y otros quedan afuera)
+        out[rel.as_posix()] = f
+    return out
+
+
+def _marca_signature() -> list:
+    sig = []
+    for rel, f in _marca_files().items():
+        try:
+            sig.append(["marca", rel, _sha(f.read_bytes())])
+        except OSError:
+            pass
+    return sig
+
+
 def edited_ids() -> set[str]:
     return {row[0] for row in _edit_signature()}
 
@@ -424,6 +452,15 @@ def apply(log=print) -> dict:
             wanted[texpath] = texmodel.to_bytes()
             report.append({"modelo": entry.id, "texturas": changed})
 
+        marca = _marca_files()
+        for rel, f in marca.items():
+            if rel in wanted:
+                log(f"Aviso: marca/juego/{rel} se ignora porque ese modelo tiene texturas editadas.")
+                continue
+            wanted[rel] = f.read_bytes()
+        if marca:
+            report.append({"marca": len(marca)})
+
         # Escribir overrides nuevos y borrar los que ya no corresponden.
         OVERRIDES.mkdir(parents=True, exist_ok=True)
         for rel, data in wanted.items():
@@ -447,10 +484,12 @@ def apply(log=print) -> dict:
         os.replace(tmpzip, VALVE_ZIP)
         _write_assets_meta(wanted)
 
-        state = {"aplicado": time.time(), "firma": _edit_signature(), "cambios": report,
+        state = {"aplicado": time.time(), "firma": _edit_signature() + _marca_signature(), "cambios": report,
                  "segundos": round(time.time() - started, 1)}
         STATE.write_text(json.dumps(state, indent=2, ensure_ascii=False))
-        log(f"valve.zip listo en {state['segundos']} s ({len(report)} modelo(s) modificado(s)).")
+        modelos = sum(1 for r in report if "modelo" in r)
+        extra = f", {len(marca)} archivo(s) de marca" if marca else ""
+        log(f"valve.zip listo en {state['segundos']} s ({modelos} modelo(s) modificado(s){extra}).")
         return state
 
 
@@ -486,7 +525,7 @@ def status() -> dict:
         zip_info = {"bytes": s.st_size, "modificado": s.st_mtime}
     pending = None
     if base_ready():
-        pending = _edit_signature() != st.get("firma", [])
+        pending = (_edit_signature() + _marca_signature()) != st.get("firma", [])
     return {
         "baseLista": base_ready(),
         "valveZip": zip_info,

@@ -1,0 +1,129 @@
+/* Marca SLA para la página del juego (colores y tipografía de slatv.live).
+   La agrega web/servidor.mjs después del estilo original: lo que esté acá gana.
+   Los cambios se ven con solo recargar la página. */
+
+@font-face {
+    font-family: "Geist";
+    src: url("/marca/fuentes/Geist-Variable.woff2") format("woff2");
+    font-weight: 100 900;
+    font-display: swap;
+}
+
+:root {
+    --bg: #181818;
+    --panel: #1f1f1ff0;
+    --line: #ffffff1f;
+    --text: #f5f5f5;
+    --muted: #a4a4a4;
+    --accent: #0d8750;
+    --accent-ink: #f8f8f8;
+    --ok: #1fbf75;
+    --err: #e5484d;
+    --radius: 10px;
+}
+
+html, body {
+    font-family: "Geist", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    -webkit-font-smoothing: antialiased;
+}
+
+body {
+    background:
+        radial-gradient(900px 520px at 88% 112%, #0d875040, transparent 62%),
+        radial-gradient(640px 360px at 8% -12%, #0d87501a, transparent 60%),
+        var(--bg);
+}
+
+/* globo del logo, gigante y apenas visible */
+body::before {
+    content: "";
+    position: fixed;
+    right: -14vmin;
+    bottom: -20vmin;
+    width: 82vmin;
+    height: 82vmin;
+    background: url("/marca/sla-globo.svg") center / contain no-repeat;
+    opacity: .045;
+    pointer-events: none;
+}
+body.playing::before { display: none; }
+
+.panel {
+    border-radius: var(--radius);
+    box-shadow: 0 30px 80px #0009, 0 0 0 1px #ffffff08 inset;
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
+}
+
+#lobby header {
+    display: block;
+    margin-bottom: 20px;
+}
+.marca-logo {
+    display: block;
+    width: 168px;
+    height: auto;
+    margin: 0 0 16px;
+}
+.marca-logo-chico { width: 96px; margin-bottom: 18px; }
+#lobby h1 {
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: .22em;
+    text-transform: uppercase;
+}
+#lobby .sub {
+    margin-top: 4px;
+    font-size: 14px;
+    font-weight: 500;
+    letter-spacing: -.01em;
+}
+
+.server {
+    background: #181818;
+    border-radius: var(--radius);
+}
+input:not([type=checkbox]),
+select {
+    background: #161616;
+    border-radius: 8px;
+}
+input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px #0d875033;
+}
+
+button {
+    font-weight: 600;
+    letter-spacing: .02em;
+    border-radius: var(--radius);
+    transition: filter .15s, background-color .15s;
+}
+button:hover:not(:disabled) { filter: brightness(1.12); }
+
+kbd {
+    background: #262626;
+    font-family: "Geist Mono", ui-monospace, Menlo, monospace;
+}
+
+.note {
+    background: #0d875014;
+    border-color: #0d875044;
+}
+.note a, .hint a { color: #3ecf8e; }
+
+.marca-pie {
+    margin: 18px 0 0;
+    padding-top: 14px;
+    border-top: 1px solid var(--line);
+    display: flex;
+    justify-content: space-between;
+    color: var(--muted);
+    font-size: 12px;
+    letter-spacing: .02em;
+}
+.marca-pie a {
+    color: var(--muted);
+    text-decoration: none;
+}
+.marca-pie a:hover { color: var(--text); }

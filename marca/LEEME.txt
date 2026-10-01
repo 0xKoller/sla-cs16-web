@@ -1,0 +1,21 @@
+Marca SLA
+=========
+
+Todo lo que está en esta carpeta se ve sin rearmar nada:
+
+  web/     La página del juego (http://localhost:27016). marca.css cambia colores y
+           tipografía, marca.js cambia logo y textos. Se ve con solo recargar la página.
+
+  juego/   Archivos que van tal cual adentro del juego (valve.zip), con la misma ruta
+           que en el juego. Ahora: el fondo del menú (cstrike/resource/...) y el color
+           del HUD (cstrike/autoexec.cfg). Para verlos: «Aplicar al juego» en el estudio
+           (o ./texturas.sh aplicar) y recargar la página del juego.
+
+  fuente/  generar.py arma el fondo del menú, el favicon y el autoexec.cfg a partir de
+           web/sla-logo.svg. vista-menu.png es una vista previa del fondo.
+
+El logo de los personajes se edita en el estudio (texturas/personajes/...).
+El nombre del servidor está en .env (NOMBRE_SERVIDOR) y el mensaje de bienvenida en
+config/motd.txt; esos dos se aplican con ./start.sh.
+
+Tipografía: Geist (Vercel, SIL Open Font License 1.1), ver fuentes/Geist-LICENSE.txt.

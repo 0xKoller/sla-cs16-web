@@ -3,6 +3,7 @@ name: cs16-custom
 # Servicios:
 #   servidor -> servidor dedicado de CS 1.6 (Xash3D FWGS + ReGameDLL + bots YaPB), Linux 32 bits
 #   web      -> página del juego + puente WebRTC <-> UDP (el servidor usa su red)
+#               (la carpeta marca/ cambia la página y el juego sin rearmar nada)
 #   studio   -> estudio de personajes, siempre solo en esta compu
 #   steamcmd -> (solo para bajar los archivos del juego; lo usa start.sh)
 #
@@ -23,6 +24,7 @@ services:
       - ./build/juego:/juego:ro
       - ./config/server.cfg:/config/server.cfg:ro
       - ./config/mapcycle.txt:/config/mapcycle.txt:ro
+      - ./config/motd.txt:/config/motd.txt:ro
     # Comparte la red de "web": así el puente le habla por 127.0.0.1 y cada jugador
     # llega con su propia IP de loopback (el servidor de CS los distingue por IP).
     network_mode: "service:web"
@@ -50,8 +52,10 @@ services:
       MAX_JUGADORES: "${MAX_JUGADORES:-12}"
       RCON_PASSWORD: "${RCON_PASSWORD:-}"
       DATOS: /data/build
+      MARCA: /data/marca/web
     volumes:
       - ./build:/data/build:ro
+      - ./marca:/data/marca:ro     # logo, colores y textos de la página: se ven al recargar
     read_only: true
     tmpfs:
       - /tmp
@@ -70,6 +74,7 @@ services:
     volumes:
       - ./build:/data/build
       - ./texturas:/data/texturas
+      - ./marca:/data/marca:ro     # marca/juego/* se suma tal cual a valve.zip
     ports:
       - "127.0.0.1:27080:8080"   # el estudio nunca se expone a la red
     read_only: true

@@ -1,7 +1,8 @@
-# CS 1.6 propio (web)
+# SLA · Counter-Strike 1.6 (web)
 
-Counter-Strike 1.6 que se juega desde el navegador, más un **estudio de personajes**
-para cambiarles las texturas y ver el resultado en 3D antes de probarlo en el juego.
+Counter-Strike 1.6 que se juega desde el navegador, con la marca de
+[SLA](https://slatv.live), más un **estudio de personajes** para cambiarles las texturas
+y ver el resultado en 3D antes de probarlo en el juego.
 
 Por ahora está armado para correr **solo en tu compu**. Cuando los personajes estén
 como querés, el siguiente paso es configurarlo para jugar online con más gente.
@@ -69,7 +70,11 @@ Atajos para la terminal:
 
 ## Dentro del juego
 
-- **M** elegir equipo · **B** comprar · **Tab** puntajes · **`** consola · **Esc** menú.
+- **M** elegir equipo · **B** comprar · **Tab** puntajes · **Esc** menú.
+- **Consola:** la tecla de arriba a la izquierda, al lado del 1 (en teclados en español
+  es la de «º»; también sirve la que está al lado del Shift izquierdo).
+- Adentro del juego no hay flechita del mouse: hacés clic, el navegador «atrapa» el
+  mouse y apuntás con la mira. **Esc** lo suelta.
 - `thirdperson` / `firstperson` en la consola: ver a tu propio personaje en tercera persona.
 - Para mirar a los otros personajes con calma: elegí «Espectador» en el menú de equipos.
 
@@ -85,6 +90,21 @@ Comandos del servidor desde la terminal:
 La cantidad de bots, su dificultad (0 a 4), el mapa inicial y el máximo de jugadores
 se cambian en `.env` (BOTS, BOTS_DIFICULTAD, MAPA, MAX_JUGADORES) y se aplican con
 `./start.sh`.
+
+## Marca (SLA)
+
+La carpeta `marca/` tiene todo lo de la marca y se ve **sin rearmar nada**:
+
+- `marca/web/`: colores, tipografía (Geist), logo y textos de la página del juego.
+  Se ve con solo recargar la página.
+- `marca/juego/`: archivos que van tal cual adentro del juego: el fondo del menú y el
+  color del HUD. Se aplican con «Aplicar al juego» en el estudio (o
+  `./texturas.sh aplicar`) y recargando la página.
+- `marca/fuente/generar.py`: arma el fondo del menú, el favicon y el color del HUD a
+  partir del logo (`marca/web/sla-logo.svg`).
+
+El nombre del servidor está en `.env` (`NOMBRE_SERVIDOR`) y el mensaje de bienvenida
+en `config/motd.txt`; esos dos se aplican con `./start.sh`.
 
 ## Seguridad
 
@@ -120,6 +140,7 @@ se cambian en `.env` (BOTS, BOTS_DIFICULTAD, MAPA, MAX_JUGADORES) y se aplican c
 | `web` | Node: la página del juego (el motor Xash3D en WebAssembly), el paquete `valve.zip` con tus personajes y el puente WebRTC ⇄ UDP hacia el servidor. |
 | `studio` | El estudio (Python). Lee las texturas de los `.mdl` y arma `build/valve.zip`. |
 | `steamcmd` | Solo para bajar los archivos del juego la primera vez. |
+| `marca/` | Logo, colores y textos de SLA para la página y el juego. |
 
 Los archivos del juego quedan en `build/juego/` y nunca se modifican. Tus cambios viven
 en `texturas/` y se aplican sobre copias.
@@ -131,6 +152,8 @@ en `texturas/` y se aplican sobre copias.
 - Port WebAssembly de Xash3D y CS16Client: paquetes `xash3d-fwgs` / `cs16-client` de
   webxash3d-fwgs (yohimik, MIT), tomados de la copia guardada en CSweb.
 - Detalle de versiones y licencias de los binarios del servidor en `servidor/FUENTES.txt`.
+- Tipografía [Geist](https://vercel.com/font) (Vercel, SIL Open Font License 1.1).
+- Logo y marca SLA: de SLA, usados con su permiso.
 
 ## Aviso
 

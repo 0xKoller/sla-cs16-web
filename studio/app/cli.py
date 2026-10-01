@@ -25,7 +25,10 @@ def main(argv: list[str]) -> int:
         elif cmd in ("aplicar", "apply"):
             state = project.apply()
             for c in state["cambios"]:
-                print(f"  {c['modelo']}: {', '.join(c['texturas'])}")
+                if "modelo" in c:
+                    print(f"  {c['modelo']}: {', '.join(c['texturas'])}")
+                elif "marca" in c:
+                    print(f"  marca: {c['marca']} archivo(s)")
             print("Recargá la página del juego para ver los cambios.")
         elif cmd in ("lista", "list"):
             names = dict(project.CATEGORIES)
