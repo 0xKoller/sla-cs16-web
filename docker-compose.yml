@@ -47,6 +47,7 @@ services:
     build: ./studio
     pull_policy: build
     restart: unless-stopped
+    user: "${HOST_UID:-10001:10001}"   # mismo usuario que en tu compu, para escribir en build/ y texturas/
     environment:
       ESTUDIO_URL_JUEGO: "${URL_JUEGO:-http://localhost:27016}"
     volumes:

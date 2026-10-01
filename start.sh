@@ -92,6 +92,7 @@ env_set MODO "$MODO"
 env_set BIND_ADDR "$DIR"
 env_set GAME_IP "$DIR"
 env_set URL_JUEGO "http://$HOST_URL:27016"
+env_set HOST_UID "$(id -u):$(id -g)"
 
 sed -e "s/{{RCON}}/$(env_get RCON_PASSWORD)/" -e "s/{{CHEATS}}/$TRAMPAS/" \
   config/server.cfg.template > config/server.cfg.tmp
