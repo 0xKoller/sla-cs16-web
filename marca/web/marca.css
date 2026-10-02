@@ -127,3 +127,14 @@ kbd {
     text-decoration: none;
 }
 .marca-pie a:hover { color: var(--text); }
+
+/* Opción «Apuntar con la mano» */
+.marca-manos small { color: var(--muted); font-size: 12px; }
+.marca-manos-ayuda {
+    margin: -4px 0 2px 24px;
+    color: var(--muted);
+    font-size: 12.5px;
+    line-height: 1.45;
+}
+.marca-manos-ayuda b { color: var(--text); font-weight: 600; }
+.marca-manos-ayuda[hidden] { display: none; }

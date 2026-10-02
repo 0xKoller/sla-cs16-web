@@ -91,6 +91,26 @@ La cantidad de bots, su dificultad (0 a 4), el mapa inicial y el máximo de juga
 se cambian en `.env` (BOTS, BOTS_DIFICULTAD, MAPA, MAX_JUGADORES) y se aplican con
 `./start.sh`.
 
+## Jugar con las manos (cámara)
+
+En la pantalla de entrada tildá **«Apuntar con la mano»** (o entrá a
+http://localhost:27016/?manos). Al tocar «Jugar» el navegador te pide la cámara.
+
+- Hacé una **pistolita** con la mano frente a la cámara: la mira sigue la punta del
+  **índice**. Llevando la mano al borde de la imagen la vista sigue girando.
+- **Bajá el pulgar** (como un gatillo) para disparar; subilo para dejar de disparar.
+- **Mano abierta** un momento: recarga.
+- Moverte sigue siendo con WASD, con la otra mano.
+
+Abajo a la izquierda aparece un panel con lo que ve la cámara, el estado y botones para
+la sensibilidad (− / +) y para pausar (con **Esc** soltás el mouse para tocarlos). La
+detección corre en el navegador con MediaPipe Hands (Google, Apache-2.0), con los
+archivos guardados en el proyecto: la imagen de la cámara no sale de tu compu.
+
+El código está en `marca/web/manos/` (`gestos.js` tiene los gestos y sus pruebas:
+`node --test marca/web/manos/gestos.test.mjs`). Con `?manos=demo` una mano de prueba se
+mueve sola, sin cámara.
+
 ## Marca (SLA)
 
 La carpeta `marca/` tiene todo lo de la marca y se ve **sin rearmar nada**:
@@ -153,6 +173,7 @@ en `texturas/` y se aplican sobre copias.
   webxash3d-fwgs (yohimik, MIT), tomados de la copia guardada en CSweb.
 - Detalle de versiones y licencias de los binarios del servidor en `servidor/FUENTES.txt`.
 - Tipografía [Geist](https://vercel.com/font) (Vercel, SIL Open Font License 1.1).
+- Detección de manos: [MediaPipe Hands](https://github.com/google/mediapipe) (Google, Apache-2.0).
 - Logo y marca SLA: de SLA, usados con su permiso.
 
 ## Aviso
