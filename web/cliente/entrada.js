@@ -7,6 +7,7 @@
 
 import * as archivos from './archivos.js';
 import { entrarAlEquipo } from './equipo.js';
+import * as tactil from './tactil.js';
 
 const $ = (id) => document.getElementById(id);
 const form = $('form');
@@ -257,6 +258,8 @@ if (form && jugar && lobby && !document.querySelector('.cs16-equipo')) {
     form.addEventListener('submit', () => {
         if (jugar.dataset.bloqueado) return;
         entrarAlEquipo(equipoElegido()).catch((e) => console.warn('[equipo]', e));
+        // celular: botones grandes de «Comprar», «Compra rápida» y «Equipo»
+        if ($('touch')?.checked) tactil.activar();
         if (manos.casilla.checked) {
             cargarManos().then((m) => m.iniciar({ demo: manos.demo }))
                 .catch((e) => console.error('[manos] no pude arrancar el control con la mano', e));
