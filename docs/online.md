@@ -97,12 +97,14 @@ cobrarse. Apagarlo no alcanza.
    pasaste un dominio, usa `https://IP-CON-GUIONES.sslip.io`, que apunta a tu servidor
    sin configurar nada.
 4. **(Opcional) Dominio propio**, por ejemplo `juego.slatv.live`: creá un registro DNS
-   tipo **A** que apunte a la IP del servidor y corré, en la carpeta del proyecto
-   (`/opt/cs16-web`):
+   tipo **A** que apunte a la IP del servidor (en Cloudflare, con la nube en gris:
+   *DNS only*) y corré, en la carpeta del proyecto (`/opt/cs16-web`):
 
    ```bash
-   sudo ./start.sh online juego.slatv.live
+   git pull && sudo ./deploy/instalar-vps.sh juego.slatv.live
    ```
+
+   El link `https://<tu-ip>.sslip.io` sigue andando: los dos tienen HTTPS.
 
 ### Si el proveedor tiene firewall propio
 
@@ -138,7 +140,12 @@ git pull && ./start.sh online                # actualizar a la última versión
 
 ## Seguridad
 
-- Las salas solo escuchan dentro del servidor; la contraseña de RCON se genera al azar.
+- Las salas solo escuchan dentro del servidor; la contraseña de RCON se genera al azar y
+  la administración remota (RCON) no se acepta desde internet: el puente descarta esos
+  paquetes. Para administrar: `./servidor.sh` en el servidor.
+- Contraseñas (`.env`, `config/server.cfg`) solo en el servidor: no están en git.
+- Con contraseña de servidor, después de 10 intentos fallidos en 10 minutos esa IP
+  tiene que esperar. SSH queda protegido con `fail2ban`.
 - La web limita las conexiones por IP (`MAX_POR_IP`, 4 por defecto) y el cupo de cada
   sala; detrás de Caddy usa la IP real del jugador.
 - Los contenedores corren sin privilegios, con sistema de archivos de solo lectura

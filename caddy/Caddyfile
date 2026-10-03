@@ -1,5 +1,5 @@
-# HTTPS automático (Let's Encrypt) para el modo online. DOMINIO lo pone start.sh en .env:
-# tu dominio (juego.ejemplo.com) o, si no tenés, <tu-ip>.sslip.io.
+# HTTPS automático (Let's Encrypt) para el modo online. DOMINIO lo pone start.sh (en .env
+# como DOMINIO_CADDY): <tu-ip>.sslip.io y, si tenés, también tu dominio (juego.ejemplo.com).
 {$DOMINIO} {
 	encode zstd gzip
 	reverse_proxy web:27016

@@ -133,6 +133,27 @@ function assetsParaCliente() {
     return leerAssets();
 }
 
+// Contraseña de la descarga: después de 10 intentos fallidos en 10 minutos, esa IP espera.
+const FALLOS_MAX = 10;
+const FALLOS_VENTANA = 10 * 60 * 1000;
+const fallos = new Map();   // ip -> { n, desde }
+function demasiadosFallos(ip) {
+    const f = fallos.get(ip);
+    if (!f) return false;
+    if (Date.now() - f.desde > FALLOS_VENTANA) {
+        fallos.delete(ip);
+        return false;
+    }
+    return f.n >= FALLOS_MAX;
+}
+function anotarFallo(ip) {
+    const f = fallos.get(ip);
+    if (!f || Date.now() - f.desde > FALLOS_VENTANA) {
+        if (fallos.size > 10000) fallos.clear();
+        fallos.set(ip, { n: 1, desde: Date.now() });
+    } else f.n++;
+}
+
 function claveOk(dada) {
     if (!cfg.password) return true;
     const a = Buffer.from(String(dada || ''));
@@ -317,7 +338,12 @@ function handler(req, res) {
         if (cfg.archivos === 'propios') {
             return sendText(res, 404, 'Este servidor es público: usá tus propios archivos del juego.');
         }
-        if (!claveOk(url.searchParams.get('clave'))) return sendText(res, 403, 'Falta la contraseña del servidor.');
+        const ip = ipDe(req);
+        if (demasiadosFallos(ip)) return sendText(res, 429, 'Demasiados intentos con la contraseña: probá de nuevo en unos minutos.');
+        if (!claveOk(url.searchParams.get('clave'))) {
+            anotarFallo(ip);
+            return sendText(res, 403, 'Falta la contraseña del servidor.');
+        }
         // El navegador lo guarda en IndexedDB según la versión: no hace falta caché HTTP.
         return sendFile(req, res, path.join(cfg.data, 'valve.zip'), 'no-store', leerAssets()?.version);
     }

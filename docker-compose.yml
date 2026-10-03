@@ -111,7 +111,7 @@ services:
       - "443:443"
       - "443:443/udp"
     environment:
-      DOMINIO: "${DOMINIO:-localhost}"
+      DOMINIO: "${DOMINIO_CADDY:-localhost}"   # lo pone start.sh: tu dominio (y el link <ip>.sslip.io)
     volumes:
       - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy-datos:/data

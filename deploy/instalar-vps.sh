@@ -36,7 +36,9 @@ export DEBIAN_FRONTEND=noninteractive
 # los primeros minutos: esperar en vez de fallar (vale también para el instalador de Docker).
 echo 'DPkg::Lock::Timeout "900";' > /etc/apt/apt.conf.d/90-esperar-lock
 apt-get update -qq
-apt-get install -y -qq ca-certificates curl git ufw >/dev/null
+apt-get install -y -qq ca-certificates curl git ufw fail2ban >/dev/null
+# fail2ban: bloquea por un rato las IP que prueban contraseñas por SSH
+systemctl enable --now fail2ban >/dev/null 2>&1 || true
 
 say "2/6 Docker"
 if ! command -v docker >/dev/null 2>&1; then

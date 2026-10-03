@@ -10,6 +10,7 @@
 import dgram from 'node:dgram';
 import { EventEmitter } from 'node:events';
 import nodeDataChannel from 'node-datachannel';
+import { esRcon } from './paquetes.mjs';
 
 const MAX_BUFFERED = 1 << 20;
 
@@ -151,7 +152,9 @@ export class RtcBridge extends EventEmitter {
         });
         dc.onMessage((msg) => {
             if (!peer.open || typeof msg === 'string') return;
-            udp.send(Buffer.isBuffer(msg) ? msg : Buffer.from(msg), gamePort, '127.0.0.1');
+            const paquete = Buffer.isBuffer(msg) ? msg : Buffer.from(msg);
+            if (esRcon(paquete)) return;   // la administración remota no se acepta desde internet
+            udp.send(paquete, gamePort, '127.0.0.1');
         });
         dc.onClosed(() => cleanup('canal cerrado'));
 

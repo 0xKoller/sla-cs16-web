@@ -125,6 +125,9 @@ case "$MODO" in
       DOMINIO="$(printf '%s' "$IP_PUB" | tr '.' '-').sslip.io"   # dominio gratis que apunta a esta IP
     fi
     env_set DOMINIO "$DOMINIO"
+    # Con dominio propio, el link <ip>.sslip.io sigue andando (HTTPS para los dos)
+    SSLIP="$(printf '%s' "$IP_PUB" | tr '.' '-').sslip.io"
+    if [ "$DOMINIO" = "$SSLIP" ]; then env_set DOMINIO_CADDY "$DOMINIO"; else env_set DOMINIO_CADDY "$DOMINIO, $SSLIP"; fi
     DIR_WEB="127.0.0.1"; BIND_WEB="127.0.0.1"; BIND_UDP="0.0.0.0"; URL="https://$DOMINIO"; PROXY=1
     # Público: cada jugador usa sus propios archivos del juego (no se reparten los de Valve)
     [ -n "$(env_get ARCHIVOS)" ] || env_set ARCHIVOS "propios"
