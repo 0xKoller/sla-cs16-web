@@ -2,7 +2,7 @@
 # Funciones compartidas por start.sh, stop.sh y texturas.sh (bash 3.2, macOS y Linux).
 
 # Docker Desktop puede instalar el comando "docker" en lugares que no están en el PATH.
-for _d in /usr/local/bin "$HOME/.docker/bin" /Applications/Docker.app/Contents/Resources/bin /opt/homebrew/bin; do
+for _d in /usr/local/bin "${HOME:-/root}/.docker/bin" /Applications/Docker.app/Contents/Resources/bin /opt/homebrew/bin; do
   case ":$PATH:" in
     *":$_d:"*) ;;
     *) [ -d "$_d" ] && PATH="$PATH:$_d" ;;

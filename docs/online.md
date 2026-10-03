@@ -49,18 +49,43 @@ SteamCMD, la herramienta oficial y gratuita de Valve para servidores dedicados.
 Hace falta un servidor alquilado (VPS) con Linux. Con 2 CPU y 4 GB de memoria alcanzan
 4 salas con bots cómodas.
 
-| Proveedor | Plan de ejemplo | Precio aproximado |
-|---|---|---|
-| Hetzner Cloud | CX22 (2 vCPU x86, 4 GB) | ~4 € por mes |
-| DigitalOcean | Basic 2 GB / 4 GB | 12-24 US$ por mes |
-| Vultr / Linode | 2-4 GB | 10-20 US$ por mes |
+| Proveedor | Plan de ejemplo | Precio aproximado | Cerca de Argentina |
+|---|---|---|---|
+| Vultr | Cloud Compute, Regular, 2 vCPU / 4 GB | 20 US$ por mes (se cobra por hora) | Santiago de Chile, San Pablo |
+| Hetzner Cloud | CX22 (2 vCPU x86, 4 GB) | ~4 € por mes | No (Europa, EE. UU., Singapur) |
+| DigitalOcean | Basic 4 GB | ~24 US$ por mes | No (lo más cerca: EE. UU.) |
 
 Elegí un plan **x86 (Intel/AMD)**: el servidor de CS es de 32 bits x86 y en ARM corre
-emulado. Cerca de los jugadores mejor (para Argentina: San Pablo o Miami andan bien).
+emulado. Cerca de los jugadores mejor: menos «ping».
+
+### La forma más fácil: sin entrar por SSH (Vultr, 10 minutos)
+
+1. Creá una cuenta en [vultr.com](https://www.vultr.com) y cargá un medio de pago.
+2. **Deploy +** → **Cloud Compute – Shared CPU**.
+3. Ubicación: **Santiago** (o San Pablo). Sistema: **Ubuntu 24.04 LTS x64**.
+   Plan: **Regular Performance, 2 vCPU / 4 GB**.
+4. En **Additional Features** tildá **Enable Cloud-Init User-Data** y pegá esto:
+
+   ```bash
+   #!/bin/bash
+   curl -fsSL https://raw.githubusercontent.com/shugavibes/sla-cs16-web/main/deploy/instalar-vps.sh \
+     | REPO=https://github.com/shugavibes/sla-cs16-web.git bash
+   ```
+
+5. **Deploy Now**. Cuando el servidor diga *Running*, copiá su IP (por ejemplo
+   `64.176.1.2`) y esperá unos 15 minutos: instala todo solo en el primer arranque.
+6. Abrí `https://64-176-1-2.sslip.io` (tu IP con guiones en vez de puntos). Si todavía
+   no abre, esperá unos minutos más. Para ver cómo va: entrá por SSH y corré
+   `tail -f /var/log/cloud-init-output.log`.
+
+Se cobra por hora mientras el servidor exista: si lo borrás (**Destroy**), deja de
+cobrarse. Apagarlo no alcanza.
+
+### Con SSH (cualquier proveedor)
 
 1. **Crear el servidor** con Ubuntu 24.04 y tu clave SSH.
 2. **Entrar** por SSH: `ssh root@IP_DEL_SERVIDOR`
-3. **Instalar y levantar** (cambiá shugavibes/sla-cs16-web por el repo de GitHub):
+3. **Instalar y levantar** (si hiciste un fork, poné tu repo en lugar de shugavibes/sla-cs16-web):
 
    ```bash
    curl -fsSL https://raw.githubusercontent.com/shugavibes/sla-cs16-web/main/deploy/instalar-vps.sh \

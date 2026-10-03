@@ -6,9 +6,12 @@
 #   sudo ./deploy/instalar-vps.sh                  # usa <tu-ip>.sslip.io como dominio
 #   sudo ./deploy/instalar-vps.sh juego.midominio.com
 #
-# O directo desde GitHub (cambiá shugavibes/sla-cs16-web):
+# O directo desde GitHub:
 #   curl -fsSL https://raw.githubusercontent.com/shugavibes/sla-cs16-web/main/deploy/instalar-vps.sh \
 #     | sudo REPO=https://github.com/shugavibes/sla-cs16-web.git bash -s -- [dominio]
+#
+# También sirve como «user data» / «startup script» al crear el servidor (corre solo en el
+# primer arranque, sin entrar por SSH): ver docs/online.md.
 #
 # Qué hace: instala Docker y git, abre solo los puertos necesarios (SSH, 80, 443 y
 # 27018/UDP), agrega memoria de intercambio si el servidor tiene poca, y corre
@@ -18,6 +21,8 @@ set -euo pipefail
 DOMINIO="${1:-}"
 REPO="${REPO:-}"
 DESTINO="${DESTINO:-/opt/cs16-web}"
+# Como «user data» del primer arranque corre sin HOME (y Docker y los scripts lo usan)
+export HOME="${HOME:-/root}"
 
 say() { printf '\n\033[1m%s\033[0m\n' "$*"; }
 falla() { printf '\n\033[31m✗ %s\033[0m\n\n' "$*" >&2; exit 1; }
@@ -27,6 +32,9 @@ command -v apt-get >/dev/null 2>&1 || falla "Este instalador es para Ubuntu o De
 
 say "1/6 Programas base"
 export DEBIAN_FRONTEND=noninteractive
+# En un servidor recién creado, las actualizaciones automáticas suelen tener tomado apt
+# los primeros minutos: esperar en vez de fallar (vale también para el instalador de Docker).
+echo 'DPkg::Lock::Timeout "900";' > /etc/apt/apt.conf.d/90-esperar-lock
 apt-get update -qq
 apt-get install -y -qq ca-certificates curl git ufw >/dev/null
 
