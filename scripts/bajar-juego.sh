@@ -13,6 +13,15 @@ _completo() { # _completo <carpeta>
 
 juego_listo() { _completo "$JUEGO"; }
 
+# En Linux las carpetas compartidas con los contenedores respetan los dueños de los
+# archivos: SteamCMD corre como el usuario 10001 y tiene que poder escribir en
+# build/descarga; al terminar, los archivos vuelven a ser tuyos. (En Mac no hace falta.)
+_duenio_descarga() { # _duenio_descarga <uid:gid>
+  [ "$(uname -s)" = "Linux" ] || return 0
+  docker compose --profile descarga run --rm --no-deps --user 0 --entrypoint chown steamcmd \
+    -R "$1" /descarga >/dev/null 2>&1 || true
+}
+
 bajar_juego() {
   if juego_listo; then
     ok "Los archivos del juego ya están en $JUEGO"
@@ -23,6 +32,7 @@ bajar_juego() {
   if ! _completo "$DESCARGA"; then
     paso "Bajando los archivos del juego con SteamCMD de Valve (~600 MB, una sola vez)"
     if docker compose --profile descarga build steamcmd; then
+      _duenio_descarga 10001:10001
       local intento
       for intento in 1 2 3 4; do
         # shellcheck disable=SC2086
@@ -61,6 +71,7 @@ bajar_juego() {
     instalación a $JUEGO/ y corré ./start.sh otra vez."
   fi
 
+  _duenio_descarga "$(id -u):$(id -g)"
   # Solo se usan los archivos del juego: los binarios de Valve no se ejecutan nunca.
   mkdir -p "$JUEGO"
   rm -rf "$JUEGO/valve" "$JUEGO/cstrike"
