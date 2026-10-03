@@ -60,11 +60,11 @@ emulado. Cerca de los jugadores mejor (para Argentina: San Pablo o Miami andan b
 
 1. **Crear el servidor** con Ubuntu 24.04 y tu clave SSH.
 2. **Entrar** por SSH: `ssh root@IP_DEL_SERVIDOR`
-3. **Instalar y levantar** (cambiá USUARIO/REPO por el repo de GitHub):
+3. **Instalar y levantar** (cambiá shugavibes/sla-cs16-web por el repo de GitHub):
 
    ```bash
-   curl -fsSL https://raw.githubusercontent.com/USUARIO/REPO/main/deploy/instalar-vps.sh \
-     | sudo REPO=https://github.com/USUARIO/REPO.git bash
+   curl -fsSL https://raw.githubusercontent.com/shugavibes/sla-cs16-web/main/deploy/instalar-vps.sh \
+     | sudo REPO=https://github.com/shugavibes/sla-cs16-web.git bash
    ```
 
    Instala Docker, abre solo los puertos que hacen falta (SSH, 80, 443 y 27018/UDP),

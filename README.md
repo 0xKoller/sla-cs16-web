@@ -27,7 +27,7 @@ No hace falta tener Counter-Strike: el servidor baja los archivos del juego con 
 la herramienta oficial y gratuita de Valve para servidores.
 
 ```bash
-git clone https://github.com/USUARIO/REPO.git cs16-web
+git clone https://github.com/shugavibes/sla-cs16-web.git cs16-web
 cd cs16-web
 ./start.sh
 ```
@@ -83,8 +83,8 @@ Se aplican con `./start.sh`. Comandos para las salas:
 
 ```bash
 # en un servidor Ubuntu recién creado (x86, 2 CPU / 4 GB alcanzan):
-curl -fsSL https://raw.githubusercontent.com/USUARIO/REPO/main/deploy/instalar-vps.sh \
-  | sudo REPO=https://github.com/USUARIO/REPO.git bash
+curl -fsSL https://raw.githubusercontent.com/shugavibes/sla-cs16-web/main/deploy/instalar-vps.sh \
+  | sudo REPO=https://github.com/shugavibes/sla-cs16-web.git bash
 ```
 
 Instala Docker, abre solo los puertos necesarios, pone HTTPS automático y levanta dos

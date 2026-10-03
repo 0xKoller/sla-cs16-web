@@ -6,9 +6,9 @@
 #   sudo ./deploy/instalar-vps.sh                  # usa <tu-ip>.sslip.io como dominio
 #   sudo ./deploy/instalar-vps.sh juego.midominio.com
 #
-# O directo desde GitHub (cambiá USUARIO/REPO):
-#   curl -fsSL https://raw.githubusercontent.com/USUARIO/REPO/main/deploy/instalar-vps.sh \
-#     | sudo REPO=https://github.com/USUARIO/REPO.git bash -s -- [dominio]
+# O directo desde GitHub (cambiá shugavibes/sla-cs16-web):
+#   curl -fsSL https://raw.githubusercontent.com/shugavibes/sla-cs16-web/main/deploy/instalar-vps.sh \
+#     | sudo REPO=https://github.com/shugavibes/sla-cs16-web.git bash -s -- [dominio]
 #
 # Qué hace: instala Docker y git, abre solo los puertos necesarios (SSH, 80, 443 y
 # 27018/UDP), agrega memoria de intercambio si el servidor tiene poca, y corre
@@ -50,7 +50,7 @@ say "3/6 Código del juego"
 if [ -f "$(dirname "$0")/../start.sh" ] && [ -z "$REPO" ]; then
   cd "$(dirname "$0")/.."
 else
-  [ -n "$REPO" ] || falla "No encuentro el proyecto. Pasá REPO=https://github.com/USUARIO/REPO.git"
+  [ -n "$REPO" ] || falla "No encuentro el proyecto. Pasá REPO=https://github.com/shugavibes/sla-cs16-web.git"
   if [ -d "$DESTINO/.git" ]; then
     git -C "$DESTINO" pull --ff-only
   else
