@@ -6,6 +6,7 @@
 // La página la carga sola (web/servidor.mjs la agrega al final de index.html).
 
 import * as archivos from './archivos.js';
+import { entrarAlEquipo } from './equipo.js';
 
 const $ = (id) => document.getElementById(id);
 const form = $('form');
@@ -18,7 +19,6 @@ const leer = (k, d = null) => {
 const guardar = (k, v) => {
     try { localStorage.setItem(k, v); } catch { /* sin almacenamiento */ }
 };
-const dormir = (ms) => new Promise((r) => setTimeout(r, ms));
 const escapar = (t) => String(t).replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
 
 // La función del cliente que carga los archivos pasa por acá (ver archivos.js)
@@ -91,43 +91,6 @@ function crearEquipo() {
 
 function equipoElegido() {
     return document.querySelector('input[name=cs16-equipo]:checked')?.value || '5';
-}
-
-async function esperarMotor(ms) {
-    const fin = Date.now() + ms;
-    while (Date.now() < fin) {
-        if (window.xash?.running) return window.xash;
-        await dormir(250);
-    }
-    return null;
-}
-
-// Entra al equipo apenas el servidor lo permite. Se reintenta hasta ver en la consola
-// el aviso "... is joining the ..." (si se repitiera después de entrar, el juego te
-// mataría para cambiarte de equipo, por eso se frena al confirmarlo).
-async function entrarAlEquipo(equipo, nombre) {
-    const motor = await esperarMotor(120000);
-    if (!motor) return;
-    const nom = String(nombre || '').trim().slice(0, 12);
-    let unido = false;
-    const original = console.log;
-    console.log = function (...args) {
-        try {
-            const t = String(args[0] ?? '');
-            if (!unido && t.includes('is joining the') && (!nom || t.includes(nom))) unido = true;
-        } catch { /* nada */ }
-        return original.apply(this, args);
-    };
-    try {
-        for (let i = 0; i < 40 && !unido; i++) {
-            motor.Cmd_ExecuteString(`jointeam ${equipo}`);
-            for (let k = 0; k < 15 && !unido; k++) await dormir(100);
-        }
-        // elige el aspecto solo (si no hacía falta, el juego lo ignora)
-        motor.Cmd_ExecuteString('joinclass 5');
-    } finally {
-        console.log = original;
-    }
 }
 
 // --------------------------------------------------------- archivos propios
@@ -246,6 +209,31 @@ window.addEventListener('keydown', (e) => {
         .catch((err) => console.error('[manos]', err));
 }, true);
 
+// ------------------------------------------------------------- dos columnas
+// En pantallas anchas la entrada va en dos columnas (marca, sala y controles a la
+// izquierda; nombre, equipo y «Jugar» a la derecha) para que entre sin scrollear.
+// En el celular queda una sola columna, como siempre. El diseño está en entrada.css.
+function armarColumnas() {
+    if (lobby.querySelector(':scope > .cs16-col')) return;
+    const columna = (clase, selectores) => {
+        const div = document.createElement('div');
+        div.className = `cs16-col ${clase}`;
+        for (const sel of selectores) {
+            const n = lobby.querySelector(`:scope > ${sel}`);
+            if (n) div.append(n);
+        }
+        return div;
+    };
+    const izq = columna('cs16-col-izq', ['header', '.cs16-salas', '.server', 'details.help']);
+    const der = columna('cs16-col-der', ['#form', '#lock-hint', '#error', '#download-hint']);
+    lobby.prepend(izq, der);
+    lobby.classList.add('cs16-ancho');
+    const ayuda = izq.querySelector('details.help');
+    if (ayuda && matchMedia('(min-width: 860px)').matches) ayuda.open = true;
+    // la consola es la tecla de al lado del 1 (en teclados en español, «º»)
+    for (const k of ayuda?.querySelectorAll('kbd') || []) if (k.textContent === '`') k.textContent = 'º';
+}
+
 // ----------------------------------------------------------------- arranque
 if (form && jugar && lobby && !document.querySelector('.cs16-equipo')) {
     const cajaSalas = document.createElement('section');
@@ -261,14 +249,14 @@ if (form && jugar && lobby && !document.querySelector('.cs16-equipo')) {
     cajaArchivos = crearArchivos();
     const manos = crearManos();
     insertarAntesDeJugar(equipo, manos.fila, manos.ayuda, cajaArchivos);
+    armarColumnas();
 
     actualizarSalas(cajaSalas);
     setInterval(() => { if (!lobby.hidden) actualizarSalas(cajaSalas); }, 5000);
 
     form.addEventListener('submit', () => {
         if (jugar.dataset.bloqueado) return;
-        const nombre = $('name')?.value || '';
-        entrarAlEquipo(equipoElegido(), nombre).catch((e) => console.warn('[equipo]', e));
+        entrarAlEquipo(equipoElegido()).catch((e) => console.warn('[equipo]', e));
         if (manos.casilla.checked) {
             cargarManos().then((m) => m.iniciar({ demo: manos.demo }))
                 .catch((e) => console.error('[manos] no pude arrancar el control con la mano', e));

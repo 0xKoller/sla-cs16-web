@@ -110,3 +110,30 @@
 
 /* con archivos propios no se baja el paquete grande: el aviso de descarga no aplica */
 body.cs16-propios #download-hint { display: none; }
+
+/* dos columnas en pantallas anchas (entrada.js arma .cs16-col-izq y .cs16-col-der):
+   todo entra sin scrollear; en pantallas angostas queda una columna como siempre */
+@media (min-width: 860px) {
+    #lobby.cs16-ancho:not([hidden]) {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1.12fr);
+        width: min(1000px, calc(100vw - 48px));
+        padding: 34px 40px 24px;
+    }
+    #lobby.cs16-ancho > .cs16-col-izq { padding-right: 40px; }
+    #lobby.cs16-ancho > .cs16-col-der {
+        padding-left: 40px;
+        border-left: 1px solid var(--line);
+    }
+    #lobby.cs16-ancho > .marca-pie { grid-column: 1 / -1; }
+    #lobby.cs16-ancho .server { margin-bottom: 0; }
+    #lobby.cs16-ancho .help { margin-top: 22px; }
+    #lobby.cs16-ancho .help ul { line-height: 1.7; }
+}
+/* una columna (celular): el mismo orden de siempre, con los controles al final */
+@media (max-width: 859px) {
+    #lobby.cs16-ancho:not([hidden]) { display: flex; flex-direction: column; }
+    #lobby.cs16-ancho > .cs16-col { display: contents; }
+    #lobby.cs16-ancho .help { order: 1; }
+    #lobby.cs16-ancho > .marca-pie { order: 2; }
+}
