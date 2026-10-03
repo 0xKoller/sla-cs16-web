@@ -17,10 +17,13 @@ export const P = {
 
 export const AJUSTES_INICIALES = {
     sensibilidad: 1,          // multiplica todo el movimiento de la mira
-    gradosAncho: 110,         // cruzar la imagen de la cámara de punta a punta gira esto
-    gradosAlto: 65,           // de arriba a abajo
-    zonaBorde: 0.3,           // distancia al centro (en anchos de imagen) donde empieza el giro continuo
-    velocidadBorde: 200,      // grados por segundo con la mano en el borde
+    gradosAncho: 80,          // cruzar la imagen de la cámara de punta a punta gira esto (a velocidad media)
+    gradosAlto: 50,           // de arriba a abajo
+    aceleracion: true,        // movimientos lentos más precisos, rápidos más amplios (como un mouse)
+    zonaBorde: 0.2,           // distancia al centro (en anchos de imagen) donde empieza el giro continuo
+    zonaBordeMax: 0.42,       // ... y donde llega a la velocidad máxima
+    velocidadBorde: 150,      // grados por segundo con la mano en el borde
+    graciaMs: 250,            // si la cámara pierde la mano menos que esto, no se corta nada
     invertirY: false,
     gatillo: 'pulgar',        // 'pulgar' (pistolita) o 'pellizco'
     recargaMs: 450,           // mano abierta este tiempo = recargar
@@ -111,11 +114,18 @@ export class ControlManos {
         this.abiertaDesde = null;
         this.recargaHecha = false;
         this.ultimoT = null;
+        this.vistaT = null;        // última vez que se vio la mano
         this.ultimo = null;        // último análisis (para el panel)
     }
 
-    // Sin mano a la vista: soltar todo y no inventar movimientos.
-    sinMano() {
+    // Sin mano a la vista. Si se perdió hace muy poco (la cámara parpadea, el dedo se
+    // movió rápido) se espera sin cortar el disparo; después se suelta todo.
+    // Sin `t` suelta enseguida (pausa).
+    sinMano(t) {
+        if (t !== undefined && this.vistaT !== null && t - this.vistaT < this.ajustes.graciaMs) {
+            return { dx: 0, dy: 0, disparar: false, soltar: false, recargar: false, mano: true, perdida: true };
+        }
+        this.vistaT = null;
         this.fx.reiniciar();
         this.fy.reiniciar();
         this.anterior = null;
@@ -135,6 +145,7 @@ export class ControlManos {
         this.ultimo = info;
         const dt = this.ultimoT === null ? 0 : Math.min((t - this.ultimoT) / 1000, 0.25);
         this.ultimoT = t;
+        this.vistaT = t;
 
         // --- mira: sigue la punta del índice (filtrada)
         const x = this.fx.filtrar(info.punta.x, t);
@@ -142,16 +153,26 @@ export class ControlManos {
         let dx = 0;
         let dy = 0;
         if (this.anterior) {
-            dx = (x - this.anterior.x) / aspecto * a.gradosAncho * a.sensibilidad;
-            dy = (y - this.anterior.y) * a.gradosAlto * a.sensibilidad;
+            // en anchos/altos de imagen; un salto enorme (mano perdida y vuelta) se recorta
+            const mx = Math.max(-0.2, Math.min(0.2, (x - this.anterior.x) / aspecto));
+            const my = Math.max(-0.2, Math.min(0.2, y - this.anterior.y));
+            let ganancia = a.sensibilidad;
+            if (a.aceleracion && dt > 0) {
+                // 0.6x moviendo despacio, hasta 1.4x moviendo rápido (1.5 anchos por segundo)
+                const vel = Math.hypot(mx, my) / dt;
+                ganancia *= 0.6 + 0.8 * Math.min(vel / 1.5, 1);
+            }
+            dx = mx * a.gradosAncho * ganancia;
+            dy = my * a.gradosAlto * ganancia;
         }
         this.anterior = { x, y };
-        // giro continuo con la mano cerca del borde izquierdo o derecho
+        // giro continuo con la mano cerca del borde izquierdo o derecho (arranca suave)
         const desdeCentro = x / aspecto - 0.5;
-        const exceso = Math.abs(desdeCentro) - a.zonaBorde;
-        if (exceso > 0 && dt > 0) {
-            const f = Math.min(exceso / (0.5 - a.zonaBorde), 1);
-            dx += Math.sign(desdeCentro) * f * f * a.velocidadBorde * dt;
+        const ancho = Math.max(a.zonaBordeMax - a.zonaBorde, 0.01);
+        const f = Math.min(Math.max((Math.abs(desdeCentro) - a.zonaBorde) / ancho, 0), 1);
+        if (f > 0 && dt > 0) {
+            const suave = f * f * (3 - 2 * f);
+            dx += Math.sign(desdeCentro) * suave * a.velocidadBorde * dt;
         }
         if (a.invertirY) dy = -dy;
 

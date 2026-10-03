@@ -1,0 +1,56 @@
+name: Pruebas
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  pruebas:
+    name: Pruebas y revisión
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Dependencias de la web
+        run: npm ci --prefix web --no-audit --no-fund
+      - name: Pruebas de la web (salas, archivos propios, control con la mano)
+        run: node --test web/*.test.mjs web/cliente/*.test.mjs web/cliente/manos/*.test.mjs
+      - name: Sintaxis de JavaScript
+        run: for f in web/*.mjs web/cliente/*.js web/cliente/manos/*.js marca/web/*.js; do node --check "$f"; done
+      - name: Parche del cliente (tiene que encontrar cada texto una vez)
+        run: cp -r web/public /tmp/public && node web/parche-cliente.mjs /tmp/public
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Pruebas del estudio
+        run: |
+          pip install -r studio/requirements.txt pytest
+          cd studio && pytest -q
+
+      - name: Scripts (shellcheck)
+        run: |
+          shellcheck -x start.sh stop.sh servidor.sh texturas.sh publicar-en-github.sh scripts/*.sh deploy/*.sh
+          shellcheck -s sh servidor/entrypoint.sh servidor/preparar-motor.sh
+
+      - name: Sin archivos de Valve
+        run: |
+          if git ls-files | grep -iE '\.(bsp|mdl|spr|wad)$' | grep -v '^mapas/'; then
+            echo "::error::Hay archivos del juego fuera de mapas/ (¿de Valve?)"; exit 1
+          fi
+
+  imagenes:
+    name: Imágenes de Docker
+    runs-on: ubuntu-latest
+    needs: pruebas
+    steps:
+      - uses: actions/checkout@v4
+      - name: Armar web, estudio y servidor
+        run: docker compose build web studio servidor

@@ -1,9 +1,16 @@
 # Generado en cada máquina (no se comparte)
 .env
 config/server.cfg
+config/salas.conf
 build/
 texturas/*
 !texturas/LEEME.txt
 web/node_modules/
+node_modules/
 __pycache__/
 .pytest_cache/
+.DS_Store
+# restos de actualizaciones
+.viejo/
+.manos-*.tar.gz
+.actualizacion-*.tar.gz

@@ -10,13 +10,16 @@
 //     Shift izquierdo abren/cierran la consola con cualquier distribución de teclado
 //     (en teclados en español el motor no la reconocía).
 //  3. «Jugar» queda deshabilitado mientras el servidor de CS no está prendido.
+//  4. Salas: el estado y la conexión van a la sala elegida (window.cs16Sala).
+//  5. Archivos del juego: si la página define window.cs16CargarArchivos, se usa en vez
+//     de bajar valve.zip (servidores públicos con archivos propios; ver cliente/archivos.js).
 
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 
 const PUB = path.resolve(process.argv[2] || 'public');
-const MARCA = '/*cs16-parche-1*/';
+const MARCA = '/*cs16-parche-2*/';
 
 const CAMBIOS = [
   {
@@ -68,6 +71,31 @@ const CAMBIOS = [
       'catch{$("server-online").classList.remove("on"),esperarServidor(!0)}}' +
       'function esperarServidor(e){failed||lobby.hidden||playButton.dataset.bloqueado||' +
       '(playButton.disabled=e,playButton.textContent=e?"Esperando al servidor…":"Jugar")}',
+  },
+  {
+    nombre: 'estado de la sala elegida',
+    viejo: 'status=await(await fetch("/api/status",{cache:"no-store"})).json()',
+    nuevo: 'status=await(await fetch("/api/status"+(window.cs16Sala?"?sala="+encodeURIComponent(window.cs16Sala):""),{cache:"no-store"})).json(),window.cs16Estado=status',
+  },
+  {
+    nombre: 'conexión a la sala elegida',
+    viejo: 'new WebSocket(`${a}://${location.host}/signal`)',
+    nuevo: 'new WebSocket(`${a}://${location.host}/signal${window.cs16Sala?"?sala="+encodeURIComponent(window.cs16Sala):""}`)',
+  },
+  {
+    nombre: 'archivos del juego: enganche',
+    viejo: 'await loadAssets("/game/valve.zip",n.version,n.size,l,(m,g,f)=>{',
+    nuevo: 'await (window.cs16CargarArchivos||loadAssets)("/game/valve.zip",n.version,n.size,l,(m,g,f)=>{',
+  },
+  {
+    nombre: 'archivos del juego: pasar el cargador',
+    viejo: 'p)}),console.log(`Assets:',
+    nuevo: 'p)},loadAssets),console.log(`Assets:',
+  },
+  {
+    nombre: 'mensaje sin archivos',
+    viejo: "throw new Error('El servidor no tiene el paquete de archivos del juego. Ejecutá \"npm run setup\" en la PC del servidor.')",
+    nuevo: "throw new Error('El servidor todavía no tiene listos los archivos del juego. Probá de nuevo en un rato.')",
   },
 ];
 

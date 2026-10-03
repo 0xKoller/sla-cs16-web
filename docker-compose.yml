@@ -1,14 +1,17 @@
 name: cs16-custom
 
 # Servicios:
-#   servidor -> servidor dedicado de CS 1.6 (Xash3D FWGS + ReGameDLL + bots YaPB), Linux 32 bits
-#   web      -> página del juego + puente WebRTC <-> UDP (el servidor usa su red)
-#               (la carpeta marca/ cambia la página y el juego sin rearmar nada)
+#   servidor -> las salas: un servidor dedicado de CS 1.6 por línea de config/salas.conf
+#               (Xash3D FWGS + ReGameDLL + bots YaPB), Linux 32 bits
+#   web      -> página del juego + puente WebRTC <-> UDP (las salas usan su red)
 #   studio   -> estudio de personajes, siempre solo en esta compu
-#   steamcmd -> (solo para bajar los archivos del juego; lo usa start.sh)
+#   caddy    -> HTTPS para el modo online (./start.sh online)
+#   steamcmd -> solo para bajar los archivos del juego; lo usa start.sh
 #
-# Los puertos se publican en BIND_ADDR (127.0.0.1 en modo local: nadie más de la red
-# puede entrar). start.sh escribe esos valores en .env.
+# start.sh escribe en .env en qué direcciones escucha cada cosa según el modo:
+#   local  -> todo en 127.0.0.1 (nadie más puede entrar)
+#   lan    -> la página y el juego en la IP de la red local
+#   online -> la página detrás de Caddy (HTTPS) y el juego (UDP 27018) abierto a internet
 
 services:
   servidor:
@@ -16,6 +19,7 @@ services:
     platform: linux/amd64   # con bibliotecas de 32 bits: el servidor de CS es i386
     restart: unless-stopped
     environment:
+      NOMBRE_SERVIDOR: "${NOMBRE_SERVIDOR:-CS 1.6}"
       MAPA: "${MAPA:-de_dust2}"
       MAX_JUGADORES: "${MAX_JUGADORES:-12}"
       BOTS: "${BOTS:-4}"
@@ -25,37 +29,46 @@ services:
       - ./config/server.cfg:/config/server.cfg:ro
       - ./config/mapcycle.txt:/config/mapcycle.txt:ro
       - ./config/motd.txt:/config/motd.txt:ro
+      - ./config/salas.conf:/config/salas.conf:ro
+      - ./mapas:/mapas:ro          # mapas de la comunidad (se suman a cada sala)
     # Comparte la red de "web": así el puente le habla por 127.0.0.1 y cada jugador
     # llega con su propia IP de loopback (el servidor de CS los distingue por IP).
     network_mode: "service:web"
     depends_on:
       - web
-    stdin_open: true   # permite escribir en la consola con: docker attach cs16-custom-servidor-1
+    stdin_open: true   # permite ver la consola con: docker attach cs16-custom-servidor-1
     tty: true
     cap_drop:
       - ALL
     security_opt:
       - no-new-privileges:true
-    mem_limit: 1536m
-    pids_limit: 512
+    mem_limit: "${SERVIDOR_MEMORIA:-1536m}"   # unos 150 MB por sala
+    pids_limit: 1024
 
   web:
     build: ./web
     restart: unless-stopped
     ports:
-      - "${BIND_ADDR:-127.0.0.1}:27016:27016/tcp"   # página del juego
-      - "${BIND_ADDR:-127.0.0.1}:27018:27018/udp"   # tráfico del juego (WebRTC)
+      - "${BIND_WEB:-127.0.0.1}:27016:27016/tcp"   # página del juego
+      - "${BIND_UDP:-127.0.0.1}:27018:27018/udp"   # tráfico del juego (WebRTC)
     environment:
       IP_PUBLICA: "${IP_PUBLICA:-127.0.0.1}"
-      NOMBRE_SERVIDOR: "${NOMBRE_SERVIDOR:-CS 1.6 propio}"
+      NOMBRE_SERVIDOR: "${NOMBRE_SERVIDOR:-CS 1.6}"
       MAPA: "${MAPA:-de_dust2}"
       MAX_JUGADORES: "${MAX_JUGADORES:-12}"
       RCON_PASSWORD: "${RCON_PASSWORD:-}"
+      CONTRASENA: "${CONTRASENA:-}"
+      ARCHIVOS: "${ARCHIVOS:-servidor}"
+      CONFIAR_PROXY: "${CONFIAR_PROXY:-0}"
+      MAX_POR_IP: "${MAX_POR_IP:-4}"
       DATOS: /data/build
       MARCA: /data/marca/web
+      SALAS: /config/salas.conf
     volumes:
       - ./build:/data/build:ro
-      - ./marca:/data/marca:ro     # logo, colores y textos de la página: se ven al recargar
+      - ./marca:/data/marca:ro              # logo, colores y textos de la página: se ven al recargar
+      - ./web/cliente:/app/cliente:ro       # salas, equipo, archivos propios, manos: idem
+      - ./config/salas.conf:/config/salas.conf:ro
     read_only: true
     tmpfs:
       - /tmp
@@ -74,7 +87,8 @@ services:
     volumes:
       - ./build:/data/build
       - ./texturas:/data/texturas
-      - ./marca:/data/marca:ro     # marca/juego/* se suma tal cual a valve.zip
+      - ./marca:/data/marca:ro     # marca/juego/* se suma tal cual a valve.zip y mod.zip
+      - ./mapas:/data/mapas:ro     # mapas de la comunidad: idem
     ports:
       - "127.0.0.1:27080:8080"   # el estudio nunca se expone a la red
     read_only: true
@@ -85,6 +99,23 @@ services:
     security_opt:
       - no-new-privileges:true
     mem_limit: 1g
+
+  caddy:
+    image: caddy:2-alpine
+    profiles: ["online"]
+    restart: unless-stopped
+    depends_on:
+      - web
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    environment:
+      DOMINIO: "${DOMINIO:-localhost}"
+    volumes:
+      - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-datos:/data
+      - caddy-config:/config
 
   steamcmd:
     build: ./steamcmd
@@ -98,3 +129,5 @@ services:
 
 volumes:
   steamcmd-cache:
+  caddy-datos:
+  caddy-config:

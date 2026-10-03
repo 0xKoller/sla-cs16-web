@@ -272,6 +272,32 @@ def test_marca_files_go_into_zip(proyecto):
         assert "cstrike/autoexec.cfg" not in z.namelist()
 
 
+def test_mod_zip_has_only_community_files(proyecto):
+    project, tmp = proyecto
+    (tmp / "mapas" / "maps").mkdir(parents=True)
+    (tmp / "mapas" / "maps" / "de_sla.bsp").write_bytes(b"BSP30")
+    (tmp / "mapas" / "de_sla.wad").write_bytes(b"WAD3")
+    (tmp / "mapas" / "LEEME.md").write_text("no va")
+    (tmp / "mapas" / "maps" / "trampa.dll").write_bytes(b"MZ")
+    (tmp / "marca" / "juego" / "cstrike").mkdir(parents=True)
+    (tmp / "marca" / "juego" / "cstrike" / "autoexec.cfg").write_text("hud_color 1 2 3")
+    state = project.build(log=lambda *_: None) or project._read_state()
+    assert {"mapas": 2} in state["cambios"]
+    with zipfile.ZipFile(project.MOD_ZIP) as z:
+        names = set(z.namelist())
+    assert names == {"cstrike/maps/de_sla.bsp", "cstrike/de_sla.wad", "cstrike/autoexec.cfg"}
+    with zipfile.ZipFile(project.VALVE_ZIP) as z:
+        full = set(z.namelist())
+    assert names <= full and "cstrike/delta.lst" in full
+    meta = json.loads(project.MOD_JSON.read_text())
+    assert meta["files"] == 3 and meta["version"].startswith("mod-")
+    v1 = meta["version"]
+    (tmp / "mapas" / "de_sla.wad").write_bytes(b"WAD3 v2")
+    assert project.status()["pendiente"] is True
+    project.apply(log=lambda *_: None)
+    assert json.loads(project.MOD_JSON.read_text())["version"] != v1
+
+
 def test_texture_file_models(proyecto):
     project, tmp = proyecto
     info = project.model_info("v_ak47")

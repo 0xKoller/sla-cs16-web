@@ -26,6 +26,11 @@ EDITS = Path(os.environ.get("ESTUDIO_TEXTURAS", DATA / "texturas"))
 # Archivos de marca que van tal cual dentro de valve.zip (fondo del menú, autoexec.cfg...).
 # La ruta adentro de marca/juego es la misma que en el juego: cstrike/resource/...
 MARCA_JUEGO = Path(os.environ.get("ESTUDIO_MARCA", DATA / "marca" / "juego"))
+# Mapas y archivos de la comunidad (carpeta mapas/ del proyecto). Misma forma que cstrike/:
+# mapas/maps/de_algo.bsp va a cstrike/maps/de_algo.bsp.
+MAPAS = Path(os.environ.get("ESTUDIO_MAPAS", DATA / "mapas"))
+MOD_ZIP = BUILD / "mod.zip"
+MOD_JSON = BUILD / "mod.json"
 OVERRIDES = BUILD / "overrides"
 BASE_ZIP = BUILD / "base.zip"
 VALVE_ZIP = BUILD / "valve.zip"
@@ -401,9 +406,26 @@ def _marca_files() -> dict[str, Path]:
     return out
 
 
+def _mapas_files() -> dict[str, Path]:
+    """Archivos de mapas/ (de la comunidad), por ruta dentro del juego (cstrike/...)."""
+    out: dict[str, Path] = {}
+    if not MAPAS.is_dir():
+        return out
+    for f in sorted(MAPAS.rglob("*")):
+        rel = f.relative_to(MAPAS)
+        if not f.is_file() or any(part.startswith(".") for part in rel.parts):
+            continue
+        if f.suffix.lower() in (".md", ".txt") and len(rel.parts) == 1:
+            continue  # LEEME.md, LICENCIAS.txt... no van al juego
+        if f.suffix.lower() in (".dll", ".so", ".dylib", ".exe"):
+            continue  # nada de código
+        out["cstrike/" + rel.as_posix()] = f
+    return out
+
+
 def _marca_signature() -> list:
     sig = []
-    for rel, f in _marca_files().items():
+    for rel, f in {**_mapas_files(), **_marca_files()}.items():
         try:
             sig.append(["marca", rel, _sha(f.read_bytes())])
         except OSError:
@@ -460,6 +482,11 @@ def apply(log=print) -> dict:
             wanted[rel] = f.read_bytes()
         if marca:
             report.append({"marca": len(marca)})
+        mapas = _mapas_files()
+        for rel, f in mapas.items():
+            wanted.setdefault(rel, f.read_bytes())
+        if mapas:
+            report.append({"mapas": len(mapas)})
 
         # Escribir overrides nuevos y borrar los que ya no corresponden.
         OVERRIDES.mkdir(parents=True, exist_ok=True)
@@ -483,12 +510,13 @@ def apply(log=print) -> dict:
             _run_zip(["-1", "-q", str(tmpzip), *sorted(wanted)], OVERRIDES)
         os.replace(tmpzip, VALVE_ZIP)
         _write_assets_meta(wanted)
+        _write_mod(wanted)
 
         state = {"aplicado": time.time(), "firma": _edit_signature() + _marca_signature(), "cambios": report,
                  "segundos": round(time.time() - started, 1)}
         STATE.write_text(json.dumps(state, indent=2, ensure_ascii=False))
         modelos = sum(1 for r in report if "modelo" in r)
-        extra = f", {len(marca)} archivo(s) de marca" if marca else ""
+        extra = (f", {len(marca)} archivo(s) de marca" if marca else "") + (f", {len(mapas)} de mapas" if mapas else "")
         log(f"valve.zip listo en {state['segundos']} s ({modelos} modelo(s) modificado(s){extra}).")
         return state
 
@@ -509,6 +537,29 @@ def _write_assets_meta(wanted: dict[str, bytes]) -> dict:
     tmp = ASSETS_JSON.with_suffix(".tmp")
     tmp.write_text(json.dumps(meta, indent=2))
     os.replace(tmp, ASSETS_JSON)
+    return meta
+
+
+def _write_mod(wanted: dict[str, bytes]) -> dict:
+    """mod.zip: solo lo propio de esta comunidad (personajes, marca, mapas nuevos), sin
+    archivos de Valve. Es lo que bajan los jugadores de un servidor público, que ponen sus
+    propios archivos de CS 1.6."""
+    import zipfile
+
+    h = hashlib.sha1(b"mod\n")
+    for rel in sorted(wanted):
+        h.update(f"{rel}:{_sha(wanted[rel])}\n".encode())
+    tmp = BUILD / "mod.zip.tmp"
+    tmp.unlink(missing_ok=True)
+    with zipfile.ZipFile(tmp, "w", zipfile.ZIP_DEFLATED, compresslevel=6) as z:
+        for rel in sorted(wanted):
+            z.writestr(rel, wanted[rel])
+    os.replace(tmp, MOD_ZIP)
+    meta = {"version": "mod-" + h.hexdigest()[:16], "files": len(wanted),
+            "size": MOD_ZIP.stat().st_size, "unpacked": sum(len(d) for d in wanted.values())}
+    tmpj = MOD_JSON.with_suffix(".tmp")
+    tmpj.write_text(json.dumps(meta, indent=2))
+    os.replace(tmpj, MOD_JSON)
     return meta
 
 

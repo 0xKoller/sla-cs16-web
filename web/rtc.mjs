@@ -50,7 +50,7 @@ export function rewriteSdp(sdp, publicIp) {
 export class RtcBridge extends EventEmitter {
     constructor(cfg) {
         super();
-        this.cfg = cfg;           // { webrtcPort, gamePort, publicIp, maxPeers }
+        this.cfg = cfg;           // { webrtcPort, publicIp, maxPeers, maxPorIp }
         this.peers = new Set();
         this.slots = new Set();
         this.nextId = 1;
@@ -58,6 +58,10 @@ export class RtcBridge extends EventEmitter {
 
     get count() {
         return [...this.peers].filter((p) => p.open).length;
+    }
+
+    contarSala(id) {
+        return [...this.peers].filter((p) => p.open && p.sala === id).length;
     }
 
     allocSlot() {
@@ -70,17 +74,22 @@ export class RtcBridge extends EventEmitter {
         throw new Error('sin slots libres');
     }
 
-    // ws: conexión WebSocket de señalización (paquete "ws")
-    handle(ws, remote) {
+    // ws: conexión WebSocket de señalización (paquete "ws"); sala: { id, puerto, maxJugadores }
+    handle(ws, remote, sala) {
         const cfg = this.cfg;
-        if (this.peers.size >= cfg.maxPeers) {
-            try { ws.close(1013, 'servidor lleno'); } catch { /* cerrado */ }
-            return;
+        const cerrar = (motivo) => {
+            try { ws.close(1013, motivo); } catch { /* cerrado */ }
+        };
+        if (this.peers.size >= cfg.maxPeers) return cerrar('servidor lleno');
+        if ([...this.peers].filter((p) => p.sala === sala.id).length >= sala.maxJugadores + 2) return cerrar('sala llena');
+        if (cfg.maxPorIp && remote && [...this.peers].filter((p) => p.remote === remote).length >= cfg.maxPorIp) {
+            return cerrar('demasiadas conexiones desde tu red');
         }
+        const gamePort = sala.puerto;
         const id = this.nextId++;
         const slot = this.allocSlot();
         const loopback = `127.0.${1 + Math.floor(slot / 254)}.${1 + (slot % 254)}`;
-        const peer = { id, open: false, remote };
+        const peer = { id, open: false, remote, sala: sala.id };
         this.peers.add(peer);
 
         const send = (obj) => {
@@ -129,7 +138,7 @@ export class RtcBridge extends EventEmitter {
             udp = dgram.createSocket('udp4');
             udp.on('error', (err) => cleanup(`udp: ${err.message}`));
             udp.on('message', (msg, rinfo) => {
-                if (rinfo.port !== cfg.gamePort) return;
+                if (rinfo.port !== gamePort) return;
                 if (!dc.isOpen() || dc.bufferedAmount() > MAX_BUFFERED) return;
                 dc.sendMessageBinary(msg);
             });
@@ -142,7 +151,7 @@ export class RtcBridge extends EventEmitter {
         });
         dc.onMessage((msg) => {
             if (!peer.open || typeof msg === 'string') return;
-            udp.send(Buffer.isBuffer(msg) ? msg : Buffer.from(msg), cfg.gamePort, '127.0.0.1');
+            udp.send(Buffer.isBuffer(msg) ? msg : Buffer.from(msg), gamePort, '127.0.0.1');
         });
         dc.onClosed(() => cleanup('canal cerrado'));
 

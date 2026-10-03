@@ -51,21 +51,37 @@ test('bajar el pulgar dispara una vez y subirlo suelta', () => {
     assert.equal(paso(PISTOLA).soltar, false);
 });
 
-test('la mira sigue al dedo: mover un décimo de la imagen gira ~11 grados', () => {
-    const c = new ControlManos({ zonaBorde: 0.45 });
+test('la mira sigue al dedo: mover un décimo de la imagen gira ~8 grados', () => {
+    const c = new ControlManos({ zonaBorde: 0.45, zonaBordeMax: 0.5, aceleracion: false });
     let t = 0;
     let total = 0;
     for (let i = 0; i < 10; i++) c.actualizar(PISTOLA, ASPECTO, (t += 33));
     // la imagen se ve espejada: mover la mano hacia x menor en la cámara = a la derecha
     for (let i = 0; i < 40; i++) total += c.actualizar(mover(PISTOLA, -0.1), ASPECTO, (t += 33)).dx;
-    assert.ok(total > 10 && total < 11.5, `giró ${total}`);
+    assert.ok(total > 7.3 && total < 8.4, `giró ${total}`);
     let vertical = 0;
     for (let i = 0; i < 40; i++) vertical += c.actualizar(mover(PISTOLA, -0.1, 0.1), ASPECTO, (t += 33)).dy;
-    assert.ok(vertical > 6 && vertical < 7, `vertical ${vertical}`);
+    assert.ok(vertical > 4.5 && vertical < 5.3, `vertical ${vertical}`);
+});
+
+test('con aceleración, despacio es más preciso que rápido', () => {
+    const recorrer = (cuadros) => {
+        const c = new ControlManos({ zonaBorde: 0.45, zonaBordeMax: 0.5 });
+        let t = 0;
+        let total = 0;
+        c.actualizar(PISTOLA, ASPECTO, t);
+        for (let i = 1; i <= cuadros; i++) total += c.actualizar(mover(PISTOLA, -0.1 * i / cuadros), ASPECTO, (t += 33)).dx;
+        for (let i = 0; i < 40; i++) total += c.actualizar(mover(PISTOLA, -0.1), ASPECTO, (t += 33)).dx;
+        return total;
+    };
+    const lento = recorrer(90);   // 3 segundos
+    const rapido = recorrer(3);   // 0.1 segundos
+    assert.ok(lento < rapido * 0.75, `lento ${lento.toFixed(1)} rápido ${rapido.toFixed(1)}`);
+    assert.ok(lento > 4 && rapido < 12);
 });
 
 test('el temblor chico casi no mueve la mira', () => {
-    const c = new ControlManos({ zonaBorde: 0.45 });
+    const c = new ControlManos({ zonaBorde: 0.45, zonaBordeMax: 0.5 });
     let t = 0;
     let total = 0;
     let s = 1;
@@ -100,8 +116,20 @@ test('mano abierta un rato recarga una sola vez', () => {
     assert.equal(recargas, 2);
 });
 
+test('si la cámara pierde la mano un instante no se corta el disparo', () => {
+    const c = new ControlManos();
+    let t = 0;
+    for (let i = 0; i < 5; i++) c.actualizar(PISTOLA, ASPECTO, (t += 33));
+    assert.equal(c.actualizar(conPulgarBajado(PISTOLA), ASPECTO, (t += 33)).disparar, true);
+    const r = c.sinMano((t += 100));
+    assert.equal(r.soltar, false);
+    assert.equal(r.mano, true);
+    assert.equal(c.disparando, true);
+    assert.equal(c.sinMano((t += 400)).soltar, true);
+});
+
 test('si se pierde la mano suelta el disparo y no salta la mira al volver', () => {
-    const c = new ControlManos({ zonaBorde: 0.45 });
+    const c = new ControlManos({ zonaBorde: 0.45, zonaBordeMax: 0.5 });
     let t = 0;
     for (let i = 0; i < 5; i++) c.actualizar(PISTOLA, ASPECTO, (t += 33));
     c.actualizar(conPulgarBajado(PISTOLA), ASPECTO, (t += 33));

@@ -1,183 +1,166 @@
-# SLA · Counter-Strike 1.6 (web)
+# SLA · Counter-Strike 1.6 en el navegador
 
-Counter-Strike 1.6 que se juega desde el navegador, con la marca de
-[SLA](https://slatv.live), más un **estudio de personajes** para cambiarles las texturas
-y ver el resultado en 3D antes de probarlo en el juego.
+Counter-Strike 1.6 que se juega desde el navegador, sin instalar nada, con la marca de
+[SLA](https://slatv.live). Trae salas con bots, un **estudio de personajes** para
+cambiarles las texturas, y un modo para **apuntar y disparar con la mano** usando la
+cámara.
 
-Por ahora está armado para correr **solo en tu compu**. Cuando los personajes estén
-como querés, el siguiente paso es configurarlo para jugar online con más gente.
+> **English summary.** Counter-Strike 1.6 in the browser (Xash3D FWGS compiled to
+> WebAssembly) with dedicated servers in Docker, a WebRTC ⇄ UDP bridge, multiple rooms,
+> a character texture studio and hand-tracking controls (MediaPipe). Public servers ask
+> each player for their own CS 1.6 files (from Steam); no Valve content is in this repo.
+> Docs are in Spanish; issues and PRs in English are welcome too.
 
-## Qué necesitás
+| | |
+|---|---|
+| 🎮 **Jugar** | En el navegador (Chrome, Edge, Firefox o Safari). Con mouse y teclado, o con la mano. |
+| 🏠 **Salas** | Varias salas por servidor, cada una con su mapa, cupo y bots. Se elige al entrar. |
+| ✋ **Manos** | Pistolita con la mano: el índice apunta, bajar el pulgar dispara, mano abierta recarga. |
+| 🎨 **Estudio** | Cambiá la ropa de los personajes y velos en 3D antes de aplicarlo al juego. |
+| 🌐 **Online** | Un comando instala todo en un servidor alquilado, con HTTPS. |
 
-- **Docker Desktop** ([docker.com](https://www.docker.com/products/docker-desktop/)).
-  En una Mac con chip M elegí la versión "Apple Silicon". Es gratis para uso personal.
-- Unos 3 GB libres de disco.
+## Jugar en tu compu
 
-No hace falta tener Counter-Strike ni cuenta de Steam: los archivos del juego se bajan
-con SteamCMD, la herramienta gratuita de Valve para servidores dedicados.
-
-## Arrancar
-
-Abrí la Terminal en esta carpeta y corré:
+Necesitás [Docker Desktop](https://www.docker.com/products/docker-desktop/) (gratis
+para uso personal; en Mac con chip M, la versión «Apple Silicon») y unos 3 GB de disco.
+No hace falta tener Counter-Strike: el servidor baja los archivos del juego con SteamCMD,
+la herramienta oficial y gratuita de Valve para servidores.
 
 ```bash
+git clone https://github.com/USUARIO/REPO.git cs16-web
+cd cs16-web
 ./start.sh
 ```
 
-La primera vez tarda bastante (10 a 20 minutos en una Mac con chip M): arma las
-imágenes de Docker, baja los archivos del juego (~600 MB) y prepara todo. Las
-siguientes veces arranca en un minuto. Cuando termina muestra:
+La primera vez tarda (10 a 20 minutos en una Mac con chip M): arma las imágenes, baja
+los archivos del juego (~600 MB) y prepara todo. Después arranca en un minuto.
 
-- **Juego:** http://localhost:27016 — poné un nombre, tocá «Jugar» y elegí equipo
-  con la tecla M. Entran 4 bots para que veas a los personajes moverse.
+- **Juego:** http://localhost:27016 — poné tu nombre, elegí sala y equipo, y «Jugar».
 - **Estudio:** http://localhost:27080 — para editar los personajes.
+- `./start.sh lan` lo abre a tu red (Wi-Fi). `./stop.sh` apaga todo.
 
-Para apagar todo: `./stop.sh`. Tus cambios quedan guardados.
+### Dentro del juego
 
-## Editar personajes
+- **WASD** moverse · **B** comprar · **M** cambiar de equipo · **Tab** puntajes · **Esc** menú.
+- **Consola:** la tecla de al lado del 1 (en teclados en español, la de «º»).
+- No hay flechita del mouse: hacés clic, el navegador «atrapa» el mouse y apuntás con la
+  mira. **Esc** lo suelta.
+- **⌥ Option + H** (Alt + H): cambiar entre la mano y el mouse cuando quieras.
 
-En el estudio:
+## Jugar con la mano
 
-1. Elegí un personaje a la izquierda. Se ve en 3D al medio (podés girarlo con el mouse
-   y cambiar la pose).
-2. Elegí una de sus texturas a la derecha.
-3. Cambiala:
-   - **Ajuste rápido:** mové Tono, Saturación y Brillo; se ve en vivo en el 3D.
-     Tocá «Guardar ajuste».
-   - **Imagen propia:** «Subir imagen» o arrastrá un PNG sobre la textura.
-   - **Con tu programa (Photoshop, Figma, Aseprite…):** tocá «Copiar texturas a la
-     carpeta», editá los PNG que aparecen en `texturas/personajes/<personaje>/` y
-     guardalos con el mismo nombre. Al volver al estudio se actualizan solos.
-4. Tocá **«Aplicar al juego»** y recargá la pestaña del juego. El navegador baja de
-   nuevo el paquete del juego (una vez por cada cambio aplicado).
+Tildá **«Apuntar con la mano»** al entrar (o en el juego apretá **⌥/Alt + H**). El
+navegador pide la cámara.
 
-Detalles a tener en cuenta:
-
-- Cada textura tiene un tamaño fijo (por ejemplo 256×256). Si subís otro tamaño, el
-  estudio lo ajusta solo, pero conviene respetarlo.
-- El motor usa 256 colores por textura. El estudio convierte tu imagen automáticamente;
-  lo que ves en el 3D ya es cómo va a quedar en el juego.
-- Solo se cambian texturas: la forma del personaje y dónde pegan los tiros no cambian.
-- «Restaurar original» vuelve una textura (o el modelo entero) a como venía.
-
-Atajos para la terminal:
-
-```bash
-./texturas.sh lista                  # modelos que se pueden editar
-./texturas.sh exportar player/leet   # copia las texturas a texturas/personajes/leet/
-./texturas.sh aplicar                # aplica tus cambios al juego
-```
-
-## Dentro del juego
-
-- **M** elegir equipo · **B** comprar · **Tab** puntajes · **Esc** menú.
-- **Consola:** la tecla de arriba a la izquierda, al lado del 1 (en teclados en español
-  es la de «º»; también sirve la que está al lado del Shift izquierdo).
-- Adentro del juego no hay flechita del mouse: hacés clic, el navegador «atrapa» el
-  mouse y apuntás con la mira. **Esc** lo suelta.
-- `thirdperson` / `firstperson` en la consola: ver a tu propio personaje en tercera persona.
-- Para mirar a los otros personajes con calma: elegí «Espectador» en el menú de equipos.
-
-Comandos del servidor desde la terminal:
-
-```bash
-./servidor.sh "yb add"                  # agrega un bot ("yb kick" saca uno)
-./servidor.sh "yb_quota 8"              # cantidad fija de bots
-./servidor.sh "changelevel de_inferno"  # cambia el mapa
-./servidor.sh status                    # lista jugadores
-```
-
-La cantidad de bots, su dificultad (0 a 4), el mapa inicial y el máximo de jugadores
-se cambian en `.env` (BOTS, BOTS_DIFICULTAD, MAPA, MAX_JUGADORES) y se aplican con
-`./start.sh`.
-
-## Jugar con las manos (cámara)
-
-En la pantalla de entrada tildá **«Apuntar con la mano»** (o entrá a
-http://localhost:27016/?manos). Al tocar «Jugar» el navegador te pide la cámara.
-
-- Hacé una **pistolita** con la mano frente a la cámara: la mira sigue la punta del
-  **índice**. Llevando la mano al borde de la imagen la vista sigue girando.
-- **Bajá el pulgar** (como un gatillo) para disparar; subilo para dejar de disparar.
+- Hacé una **pistolita**: la mira sigue la punta del **índice**. Con la mano cerca del
+  borde de la imagen, la vista sigue girando.
+- **Bajá el pulgar** como un gatillo para disparar.
 - **Mano abierta** un momento: recarga.
-- Moverte sigue siendo con WASD, con la otra mano.
 
-Abajo a la izquierda aparece un panel con lo que ve la cámara, el estado y botones para
-la sensibilidad (− / +) y para pausar (con **Esc** soltás el mouse para tocarlos). La
-detección corre en el navegador con MediaPipe Hands (Google, Apache-2.0), con los
-archivos guardados en el proyecto: la imagen de la cámara no sale de tu compu.
+Abajo a la izquierda hay un panel con lo que ve la cámara y botones de sensibilidad. La
+detección corre en tu navegador (MediaPipe Hands, guardado en el proyecto): la imagen de
+la cámara no sale de tu compu. Código y pruebas en `web/cliente/manos/`.
 
-El código está en `marca/web/manos/` (`gestos.js` tiene los gestos y sus pruebas:
-`node --test marca/web/manos/gestos.test.mjs`). Con `?manos=demo` una mano de prueba se
-mueve sola, sin cámara.
+## Salas
 
-## Marca (SLA)
+Cada línea de `config/salas.conf` es un servidor de CS aparte:
 
-La carpeta `marca/` tiene todo lo de la marca y se ve **sin rearmar nada**:
+```
+# id | nombre          | mapa       | jugadores | bots | dificultad
+1    | SLA · Clásico   | de_dust2   | 12        | 4    | 0
+2    | SLA · Inferno   | de_inferno | 12        | 2    | 1
+```
 
-- `marca/web/`: colores, tipografía (Geist), logo y textos de la página del juego.
-  Se ve con solo recargar la página.
-- `marca/juego/`: archivos que van tal cual adentro del juego: los colores del menú y
-  el color del HUD. Se aplican con «Aplicar al juego» en el estudio (o
-  `./texturas.sh aplicar`) y recargando la página.
-- `marca/fuente/generar.py`: arma el favicon, los colores del menú y del HUD a partir
-  del logo (`marca/web/sla-logo.svg`).
+Se aplican con `./start.sh`. Comandos para las salas:
 
-El nombre del servidor está en `.env` (`NOMBRE_SERVIDOR`) y el mensaje de bienvenida
-en `config/motd.txt`; esos dos se aplican con `./start.sh`.
+```bash
+./servidor.sh "yb add"                        # agrega un bot en la sala 1
+./servidor.sh --sala 2 "changelevel de_nuke"  # cambia el mapa de la sala 2
+./servidor.sh --todas "say Hola"              # a todas las salas
+```
 
-## Seguridad
+## Online
 
-- En modo local (el de siempre) **todo escucha solo en tu compu** (127.0.0.1): nadie de
-  tu red ni de internet puede entrar.
-- `./start.sh lan` abre el juego a tu red local (Wi-Fi). El estudio sigue siendo solo
-  para tu compu en cualquier modo.
-- La contraseña de RCON se genera al azar la primera vez y queda en `.env`, que solo
-  puede leer tu usuario. `.env`, `build/` y `texturas/` no se comparten si subís este
-  proyecto a git.
-- Los contenedores corren sin privilegios, con usuarios comunes y límites de memoria.
-  El servidor de CS solo escucha dentro de su contenedor. El estudio no acepta
-  pedidos que vengan de otras páginas web.
-- De los archivos de Valve solo se usan mapas, modelos y sonidos; ningún programa de
-  Valve se ejecuta.
+```bash
+# en un servidor Ubuntu recién creado (x86, 2 CPU / 4 GB alcanzan):
+curl -fsSL https://raw.githubusercontent.com/USUARIO/REPO/main/deploy/instalar-vps.sh \
+  | sudo REPO=https://github.com/USUARIO/REPO.git bash
+```
 
-## Si algo falla
+Instala Docker, abre solo los puertos necesarios, pone HTTPS automático y levanta dos
+salas. En los servidores públicos **cada jugador usa sus propios archivos de CS 1.6**
+(los elige una vez desde su compu y quedan en su navegador; no se suben a ningún lado):
+así no se reparte contenido de Valve. Todo el detalle — arquitectura, dominios, costos,
+cómo crecer — en **[docs/online.md](docs/online.md)**.
 
-- **«Docker no está instalado»**: instalá Docker Desktop y abrilo una vez.
-- **Falla la descarga de los archivos del juego**: volvé a correr `./start.sh`
-  (SteamCMD a veces falla de a ratos). Si tenés CS 1.6 en Steam, también podés copiar
-  las carpetas `valve` y `cstrike` de tu instalación a `build/juego/`.
-- **El juego dice que no puede conectar**: mirá `docker compose logs servidor web`.
-  Si el servidor arrancó bien, probá con `./start.sh lan`.
-- **No veo mis cambios**: ¿tocaste «Aplicar al juego»? Después recargá la pestaña.
-- **Ver qué está pasando**: `docker compose logs -f servidor` (consola del servidor de CS).
+## Personajes y marca
+
+**Estudio** (http://localhost:27080): elegí un personaje, cambiá sus texturas (ajuste de
+color, una imagen propia, o editando los PNG con tu programa) y tocá «Aplicar al juego».
+La forma del personaje y dónde pegan los tiros no cambian. Desde la terminal:
+`./texturas.sh lista | exportar <id> | aplicar`.
+
+**Marca** (`marca/`): logo, colores y textos de la página (`marca/web/`, se ve al
+recargar) y lo que va dentro del juego (`marca/juego/`: colores del menú y del HUD).
+`marca/fuente/generar.py` arma todo a partir del logo y `marca/fuente/logo_personajes.py`
+pone el logo en la espalda y el pecho de los personajes. Para tu propia comunidad,
+reemplazá esa carpeta.
+
+**Mapas de la comunidad** (`mapas/`): lo que pongas ahí se suma a las salas y a los
+jugadores. Ver [mapas/LEEME.md](mapas/LEEME.md).
 
 ## Cómo está armado
 
 | Parte | Qué hace |
 |---|---|
-| `servidor` | Servidor dedicado de CS 1.6: [Xash3D FWGS](https://github.com/FWGS/xash3d-fwgs) + [ReGameDLL_CS](https://github.com/rehlds/ReGameDLL_CS) + bots [YaPB](https://github.com/yapb/yapb), de [CS16Client](https://github.com/Velaron/cs16-client). Linux 32 bits (en Mac corre emulado). |
-| `web` | Node: la página del juego (el motor Xash3D en WebAssembly), el paquete `valve.zip` con tus personajes y el puente WebRTC ⇄ UDP hacia el servidor. |
-| `studio` | El estudio (Python). Lee las texturas de los `.mdl` y arma `build/valve.zip`. |
-| `steamcmd` | Solo para bajar los archivos del juego la primera vez. |
-| `marca/` | Logo, colores y textos de SLA para la página y el juego. |
+| `servidor/` | Las salas: servidores dedicados de CS 1.6 ([Xash3D FWGS](https://github.com/FWGS/xash3d-fwgs) + [ReGameDLL_CS](https://github.com/rehlds/ReGameDLL_CS) + bots [YaPB](https://github.com/yapb/yapb)). Linux 32 bits. |
+| `web/` | Node: la página (motor en WebAssembly, de [CSweb](https://github.com/santiagoPostacchini/CSweb)), estado de las salas, paquetes del juego y puente WebRTC ⇄ UDP. |
+| `web/cliente/` | Lo propio de la página: salas, equipo, archivos propios y control con la mano. |
+| `studio/` | Estudio de personajes (Python): texturas de los `.mdl`, arma `valve.zip` y `mod.zip`. |
+| `marca/` | Marca SLA (página y juego). |
+| `mapas/` | Mapas y archivos de la comunidad. |
+| `caddy/`, `deploy/` | HTTPS e instalador para el modo online. |
+| `docs/` | Documentación (online, arquitectura). |
 
-Los archivos del juego quedan en `build/juego/` y nunca se modifican. Tus cambios viven
-en `texturas/` y se aplican sobre copias.
+Pruebas: `node --test web/*.test.mjs web/cliente/*.test.mjs web/cliente/manos/*.test.mjs`
+y `cd studio && pytest`. Corren solas en cada pull request (GitHub Actions).
 
-## Créditos
+## Contribuir
 
-- [CSweb](https://github.com/santiagoPostacchini/CSweb) (MIT): el cliente web, el puente
-  WebRTC y la configuración del servidor salen de ahí, con cambios para correr en Docker.
-- Port WebAssembly de Xash3D y CS16Client: paquetes `xash3d-fwgs` / `cs16-client` de
-  webxash3d-fwgs (yohimik, MIT), tomados de la copia guardada en CSweb.
-- Detalle de versiones y licencias de los binarios del servidor en `servidor/FUENTES.txt`.
-- Tipografía [Geist](https://vercel.com/font) (Vercel, SIL Open Font License 1.1).
-- Detección de manos: [MediaPipe Hands](https://github.com/google/mediapipe) (Google, Apache-2.0).
-- Logo y marca SLA: de SLA, usados con su permiso.
+¡Bienvenidas las mejoras, mapas, skins y traducciones! Leé
+[CONTRIBUTING.md](CONTRIBUTING.md): cómo levantar el proyecto, qué se acepta y qué no
+(en particular: nada de archivos de Valve ni contenido sin licencia).
 
-## Aviso
+## Seguridad
 
-Counter-Strike, Half-Life y su contenido son de Valve. Este proyecto no está afiliado a
-Valve y no incluye archivos de Valve: se bajan en tu compu con SteamCMD. Es para uso
-privado entre amigos; antes de abrirlo al público hay que revisar el tema de los derechos.
+- En modo local todo escucha solo en tu compu; el estudio nunca se publica.
+- Las salas solo escuchan dentro del servidor; la contraseña de RCON se genera al azar y
+  queda en `.env` (que no se sube a git, igual que `build/` y `texturas/`).
+- Contenedores sin privilegios, de solo lectura donde se puede y con límites de memoria.
+- Si encontrás un problema de seguridad, avisá en privado (ver CONTRIBUTING.md).
+
+## Si algo falla
+
+- **Falla la descarga de los archivos del juego:** volvé a correr `./start.sh`
+  (SteamCMD a veces falla de a ratos). Si tenés CS 1.6 en Steam, también podés copiar
+  las carpetas `valve` y `cstrike` a `build/juego/`.
+- **«Jugar» dice «Esperando al servidor…»:** las salas tardan en cargar el mapa (en
+  Mac, un par de minutos). `docker compose logs -f servidor` muestra qué pasa.
+- **No veo mis cambios del estudio:** ¿tocaste «Aplicar al juego»? Después recargá.
+
+## Licencia y créditos
+
+El código de este proyecto es **MIT** ([LICENSE](LICENSE)). Los componentes de terceros
+mantienen sus licencias (GPL, MIT, Apache…): ver
+[LICENCIAS-DE-TERCEROS.md](LICENCIAS-DE-TERCEROS.md). La marca y el logo de SLA no
+están bajo esa licencia.
+
+Counter-Strike y Half-Life son de Valve. Este proyecto no está afiliado a Valve y **no
+incluye archivos de Valve**: el servidor los baja con SteamCMD y en los servidores
+públicos cada jugador usa los suyos.
+
+Gracias a [CSweb](https://github.com/santiagoPostacchini/CSweb),
+[webxash3d-fwgs](https://github.com/yohimik/webxash3d-fwgs),
+[Xash3D FWGS](https://github.com/FWGS/xash3d-fwgs),
+[CS16Client](https://github.com/Velaron/cs16-client), [ReGameDLL_CS](https://github.com/rehlds/ReGameDLL_CS),
+[YaPB](https://github.com/yapb/yapb) y [MediaPipe](https://github.com/google/mediapipe).

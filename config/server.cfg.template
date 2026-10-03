@@ -1,11 +1,12 @@
 // Configuración del servidor de CS. start.sh genera config/server.cfg a partir de
 // este archivo cada vez que arranca: cambiá esta plantilla, no server.cfg.
-// Los valores entre llaves dobles los completa start.sh.
+// Los valores entre llaves dobles los completa start.sh. El nombre (hostname) lo pone
+// cada sala, según config/salas.conf.
 // Basada en la configuración de CSweb (MIT).
 
 hostname "{{NOMBRE}}"
 rcon_password "{{RCON}}"
-sv_password ""
+sv_password "{{CONTRASENA}}"
 sv_lan 1
 sv_cheats {{CHEATS}}
 pausable 0
@@ -37,6 +38,8 @@ mp_autokick 0
 mp_flashlight 1
 mp_footsteps 1
 mp_consistency 0
+// Entrar y aparecer jugando aunque la ronda ya haya empezado (sin esperar como observador)
+mp_roundrespawn_time -1
 
 // Bots YaPB (la cantidad y la dificultad salen de .env: BOTS y BOTS_DIFICULTAD)
 yb_join_after_player 0

@@ -29,6 +29,8 @@ def main(argv: list[str]) -> int:
                     print(f"  {c['modelo']}: {', '.join(c['texturas'])}")
                 elif "marca" in c:
                     print(f"  marca: {c['marca']} archivo(s)")
+                elif "mapas" in c:
+                    print(f"  mapas de la comunidad: {c['mapas']} archivo(s)")
             print("Recargá la página del juego para ver los cambios.")
         elif cmd in ("lista", "list"):
             names = dict(project.CATEGORIES)

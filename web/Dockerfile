@@ -8,6 +8,7 @@ RUN npm ci --omit=dev --no-audit --no-fund \
 
 COPY *.mjs ./
 COPY public ./public
+COPY cliente ./cliente
 
 # extras.pk3 de CS16Client para el navegador (menús, sonidos de bots...). Es grande, por
 # eso se baja acá en vez de venir en el proyecto: copia fija de CSweb, verificada.

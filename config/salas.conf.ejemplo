@@ -1,0 +1,15 @@
+# Salas de este servidor: cada línea es un servidor de CS aparte, con su mapa y sus bots.
+# Los jugadores eligen la sala en la pantalla de entrada.
+#
+#   id         letras/números (sin espacios); identifica la sala
+#   nombre     lo que ve la gente en la lista y en el juego
+#   mapa       mapa inicial (de_dust2, de_inferno, de_nuke, cs_office, ...)
+#   jugadores  máximo de jugadores (bots incluidos), de 2 a 32
+#   bots       cantidad de bots (0 = ninguno)
+#   dificultad de los bots: 0 (fácil) a 4 (experto)
+#
+# Cada sala ocupa ~150 MB de memoria. Los cambios se aplican con ./start.sh.
+# ---
+# id | nombre                    | mapa       | jugadores | bots | dificultad
+1    | SLA · Clásico             | de_dust2   | 12        | 4    | 0
+2    | SLA · Inferno             | de_inferno | 12        | 2    | 1

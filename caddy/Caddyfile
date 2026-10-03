@@ -1,0 +1,11 @@
+# HTTPS automático (Let's Encrypt) para el modo online. DOMINIO lo pone start.sh en .env:
+# tu dominio (juego.ejemplo.com) o, si no tenés, <tu-ip>.sslip.io.
+{$DOMINIO} {
+	encode zstd gzip
+	reverse_proxy web:27016
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		Permissions-Policy "camera=(self), microphone=()"
+		-Server
+	}
+}

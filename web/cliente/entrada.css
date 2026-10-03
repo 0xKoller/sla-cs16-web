@@ -1,0 +1,112 @@
+/* Pantalla de entrada: salas, equipo, archivos propios y opción de manos.
+   Usa los colores de la página (--accent, --line, ...), así la marca los cambia sola. */
+
+.cs16-titulo {
+    margin: 0 0 8px;
+    color: var(--muted);
+    font-size: 12px;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+}
+.cs16-nota {
+    margin: 0;
+    color: var(--muted);
+    font-size: 12.5px;
+    line-height: 1.45;
+}
+.cs16-nota b { color: var(--text); font-weight: 600; }
+.cs16-nota[hidden], .cs16-salas[hidden], .cs16-archivos[hidden] { display: none; }
+
+/* salas */
+.cs16-salas { margin-bottom: 14px; }
+.cs16-sala {
+    all: unset;
+    box-sizing: border-box;
+    display: grid;
+    grid-template-columns: 10px 1fr;
+    column-gap: 10px;
+    width: 100%;
+    padding: 9px 12px;
+    margin-bottom: 6px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 14px;
+}
+.cs16-sala:hover { border-color: var(--accent); }
+.cs16-sala[aria-pressed=true] { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent) inset; }
+.cs16-sala[data-apagada] { opacity: .6; }
+.cs16-sala .cs16-punto { grid-row: span 2; align-self: center; }
+.cs16-sala-nombre { font-weight: 600; color: var(--text); }
+.cs16-sala-datos { color: var(--muted); font-size: 12.5px; }
+.cs16-punto {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--err);
+}
+.cs16-punto.on { background: var(--ok); box-shadow: 0 0 8px var(--ok); }
+
+/* equipo */
+.cs16-equipo { display: grid; gap: 6px; }
+.cs16-equipo-titulo { color: var(--muted); font-size: 13px; }
+.cs16-equipo-opciones {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    overflow: hidden;
+}
+.cs16-equipo label { display: block; margin: 0; cursor: pointer; }
+.cs16-equipo input { position: absolute; opacity: 0; pointer-events: none; }
+.cs16-equipo label span {
+    display: block;
+    padding: 9px 4px;
+    text-align: center;
+    font-size: 13.5px;
+    color: var(--muted);
+    border-left: 1px solid var(--line);
+}
+.cs16-equipo label:first-of-type span { border-left: 0; }
+.cs16-equipo input:checked + span { background: var(--accent); color: var(--accent-ink); font-weight: 600; }
+.cs16-equipo input:focus-visible + span { outline: 2px solid var(--accent); outline-offset: -2px; }
+
+/* manos */
+.cs16-manos small { color: var(--muted); font-size: 12px; }
+.cs16-manos-ayuda { margin: -4px 0 2px 24px; }
+
+/* archivos propios */
+.cs16-archivos {
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 12px 14px;
+}
+.cs16-archivos-fila {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-top: 10px;
+    flex-wrap: wrap;
+}
+.cs16-archivos-estado { font-size: 13.5px; font-weight: 600; }
+.cs16-archivos-estado[data-error] { color: var(--err); font-weight: 500; }
+.cs16-boton {
+    display: inline-block;
+    padding: 8px 12px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: #ffffff0d;
+    color: var(--text);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+}
+.cs16-boton:hover { border-color: var(--accent); }
+.cs16-donde { margin-top: 10px; color: var(--muted); font-size: 12.5px; }
+.cs16-donde summary { cursor: pointer; }
+.cs16-donde ul { padding-left: 18px; margin: 6px 0; }
+.cs16-donde li { margin: 3px 0; word-break: break-word; }
+
+/* con archivos propios no se baja el paquete grande: el aviso de descarga no aplica */
+body.cs16-propios #download-hint { display: none; }

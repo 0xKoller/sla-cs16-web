@@ -1,8 +1,9 @@
-// Servidor web del juego: página (cliente Xash3D en WebAssembly), paquete de archivos
-// (valve.zip con tus personajes), estado y señalización WebRTC.
+// Servidor web del juego: página (cliente Xash3D en WebAssembly), archivos del juego,
+// estado de las salas y señalización WebRTC hacia los servidores de CS.
 //
 // Basado en server/index.mjs y server/http.mjs de CSweb
 // (https://github.com/santiagoPostacchini/CSweb, MIT).
+import crypto from 'node:crypto';
 import fs from 'node:fs';
 import http from 'node:http';
 import path from 'node:path';
@@ -10,6 +11,7 @@ import { fileURLToPath } from 'node:url';
 import { WebSocketServer } from 'ws';
 import { RtcBridge } from './rtc.mjs';
 import { consultarInfo } from './consulta.mjs';
+import { cargarSalas } from './salas.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const env = (k, d) => (process.env[k] ?? '').trim() || d;
@@ -17,23 +19,31 @@ const env = (k, d) => (process.env[k] ?? '').trim() || d;
 const cfg = {
     httpPort: Number(env('PUERTO_WEB', '27016')),
     webrtcPort: Number(env('PUERTO_WEBRTC', '27018')),
-    gamePort: Number(env('PUERTO_JUEGO', '27015')),
     publicIp: env('IP_PUBLICA', ''),
-    hostname: env('NOMBRE_SERVIDOR', 'CS 1.6 propio'),
+    hostname: env('NOMBRE_SERVIDOR', 'CS 1.6'),
     map: env('MAPA', 'de_dust2'),
     maxPlayers: Number(env('MAX_JUGADORES', '12')),
     password: env('CONTRASENA', ''),
     data: env('DATOS', '/data/build'),
     publicDir: env('PUBLICO', path.join(HERE, 'public')),
-    // Capa de marca (logo, colores, textos de la página). Se lee en cada pedido:
-    // los cambios se ven con solo recargar, sin rearmar la imagen.
+    // Funciones propias de la página (salas, equipo, archivos propios, manos). Se leen en
+    // cada pedido: con la carpeta montada, los cambios se ven al recargar.
+    clienteDir: env('CLIENTE', path.join(HERE, 'cliente')),
+    // Capa de marca (logo, colores, textos). Opcional; también se lee en cada pedido.
     marcaDir: env('MARCA', '/data/marca/web'),
+    salasArchivo: env('SALAS', '/config/salas.conf'),
+    // 'servidor': la página manda los archivos del juego (solo para uso privado).
+    // 'propios':  cada jugador usa sus archivos de CS 1.6 (servidores públicos).
+    archivos: env('ARCHIVOS', 'servidor') === 'propios' ? 'propios' : 'servidor',
+    maxPorIp: Number(env('MAX_POR_IP', '4')),
+    // Detrás de Caddy (modo online) la IP real del jugador viene en X-Forwarded-For
+    confiarProxy: env('CONFIAR_PROXY', '0') === '1',
 };
-cfg.maxPeers = cfg.maxPlayers + 4;
 
 const MIME = {
     '.html': 'text/html; charset=utf-8',
     '.js': 'text/javascript; charset=utf-8',
+    '.mjs': 'text/javascript; charset=utf-8',
     '.css': 'text/css; charset=utf-8',
     '.json': 'application/json; charset=utf-8',
     '.wasm': 'application/wasm',
@@ -55,35 +65,80 @@ const SECURITY = {
 
 const log = (...m) => console.log(new Date().toISOString().slice(11, 19), ...m);
 
-// ------------------------------------------------------------------ estado
-let assetsCache = { mtime: 0, value: null };
-function readAssets() {
-    const file = path.join(cfg.data, 'assets.json');
+// ------------------------------------------------------------------ salas
+const porDefecto = { nombre: cfg.hostname, mapa: cfg.map, maxJugadores: cfg.maxPlayers };
+let salas = cargarSalas(cfg.salasArchivo, porDefecto);
+let salasMtime = 0;
+const estado = new Map(); // id -> { online, map, players, bots }
+
+function recargarSalas() {
+    let mtime = 0;
     try {
-        const st = fs.statSync(file);
-        if (st.mtimeMs !== assetsCache.mtime) {
-            assetsCache = { mtime: st.mtimeMs, value: JSON.parse(fs.readFileSync(file, 'utf8')) };
-        }
-    } catch {
-        assetsCache = { mtime: 0, value: null };
+        mtime = fs.statSync(cfg.salasArchivo).mtimeMs;
+    } catch { /* sin archivo */ }
+    if (mtime !== salasMtime) {
+        salasMtime = mtime;
+        salas = cargarSalas(cfg.salasArchivo, porDefecto);
+        log(`[web] salas: ${salas.map((s) => `${s.id} (${s.nombre}, puerto ${s.puerto})`).join(', ')}`);
     }
-    return assetsCache.value;
 }
 
-const game = { online: false, map: cfg.map, players: 0, bots: 0 };
-async function pollGame() {
-    const info = await consultarInfo(cfg.gamePort);
-    const wasOnline = game.online;
-    if (info) {
-        Object.assign(game, { online: true, map: info.map || game.map, players: info.players, bots: info.bots });
-        if (!wasOnline) log(`[juego] servidor de CS listo, mapa ${game.map}`);
-    } else {
-        game.online = false;
-        if (wasOnline) log('[juego] el servidor de CS no responde');
-    }
+function buscarSala(id) {
+    return salas.find((s) => s.id === id) || salas[0];
 }
-setInterval(pollGame, 5000).unref();
-pollGame();
+
+async function consultarSalas() {
+    recargarSalas();
+    await Promise.all(salas.map(async (s) => {
+        const info = await consultarInfo(s.puerto);
+        const antes = estado.get(s.id)?.online;
+        if (info) {
+            estado.set(s.id, { online: true, map: info.map || s.mapa, players: info.players, bots: info.bots });
+            if (!antes) log(`[juego] sala ${s.id} lista, mapa ${info.map}`);
+        } else {
+            estado.set(s.id, { online: false, map: s.mapa, players: 0, bots: 0 });
+            if (antes) log(`[juego] la sala ${s.id} no responde`);
+        }
+    }));
+}
+setInterval(consultarSalas, 5000).unref();
+consultarSalas();
+
+// ---------------------------------------------------------------- archivos
+function leerJson(archivo, cache) {
+    try {
+        const st = fs.statSync(archivo);
+        if (st.mtimeMs !== cache.mtime) {
+            cache.mtime = st.mtimeMs;
+            cache.value = JSON.parse(fs.readFileSync(archivo, 'utf8'));
+        }
+    } catch {
+        cache.mtime = 0;
+        cache.value = null;
+    }
+    return cache.value;
+}
+const cacheAssets = { mtime: 0, value: null };
+const cacheMod = { mtime: 0, value: null };
+const leerAssets = () => leerJson(path.join(cfg.data, 'assets.json'), cacheAssets);
+const leerMod = () => leerJson(path.join(cfg.data, 'mod.json'), cacheMod);
+
+// Lo que el navegador tiene que cargar. En modo 'propios' solo el paquete de la
+// comunidad (logo, personajes, mapas nuevos): el resto lo pone cada jugador.
+function assetsParaCliente() {
+    if (cfg.archivos === 'propios') {
+        const mod = leerMod();
+        return mod ? { ...mod, propios: true } : null;
+    }
+    return leerAssets();
+}
+
+function claveOk(dada) {
+    if (!cfg.password) return true;
+    const a = Buffer.from(String(dada || ''));
+    const b = Buffer.from(cfg.password);
+    return a.length === b.length && crypto.timingSafeEqual(a, b);
+}
 
 // --------------------------------------------------------------------- http
 function sendFile(req, res, file, cacheControl, etag) {
@@ -111,6 +166,11 @@ function sendFile(req, res, file, cacheControl, etag) {
             res.end();
             return;
         }
+    } else if (req.headers['if-modified-since'] === headers['Last-Modified']) {
+        delete headers['Content-Length'];
+        res.writeHead(304, headers);
+        res.end();
+        return;
     }
     res.writeHead(200, headers);
     if (req.method === 'HEAD') {
@@ -122,7 +182,18 @@ function sendFile(req, res, file, cacheControl, etag) {
     stream.pipe(res);
 }
 
+function sendJson(res, data, status = 200) {
+    res.writeHead(status, { 'Content-Type': MIME['.json'], 'Cache-Control': 'no-store', ...SECURITY });
+    res.end(JSON.stringify(data));
+}
+
+function sendText(res, status, texto) {
+    res.writeHead(status, { 'Content-Type': 'text/plain; charset=utf-8', ...SECURITY });
+    res.end(texto);
+}
+
 const PUBLIC = path.resolve(cfg.publicDir);
+const CLIENTE = path.resolve(cfg.clienteDir);
 const MARCA = path.resolve(cfg.marcaDir);
 
 function mtimeDe(file) {
@@ -133,8 +204,19 @@ function mtimeDe(file) {
     }
 }
 
-// index.html + capa de marca: si existen marca.css / marca.js / favicon.svg en la carpeta
-// de marca, se agregan a la página (con la fecha del archivo en la URL para no usar uno viejo).
+// Sirve un archivo de una carpeta sin dejar salir de ella
+function servirDe(base, rel, req, res, cacheControl = 'no-cache') {
+    const archivo = path.resolve(base, rel);
+    if (!archivo.startsWith(base + path.sep)) {
+        res.writeHead(403, SECURITY);
+        res.end();
+        return;
+    }
+    sendFile(req, res, archivo, cacheControl);
+}
+
+// index.html + funciones propias (cliente/) + capa de marca, con la fecha de cada
+// archivo en la URL para que el navegador no use uno viejo.
 function sendIndex(req, res) {
     let html;
     try {
@@ -144,12 +226,20 @@ function sendIndex(req, res) {
         res.end('No encontrado');
         return;
     }
-    const css = mtimeDe(path.join(MARCA, 'marca.css'));
-    const js = mtimeDe(path.join(MARCA, 'marca.js'));
-    const icono = mtimeDe(path.join(MARCA, 'favicon.svg'));
+    const cabeza = [];
+    const cuerpo = [];
+    const v = (archivo) => mtimeDe(archivo);
+    const entradaCss = v(path.join(CLIENTE, 'entrada.css'));
+    const entradaJs = v(path.join(CLIENTE, 'entrada.js'));
+    const marcaCss = v(path.join(MARCA, 'marca.css'));
+    const marcaJs = v(path.join(MARCA, 'marca.js'));
+    const icono = v(path.join(MARCA, 'favicon.svg'));
     if (icono) html = html.replace(/<link rel="icon"[^>]*>/, `<link rel="icon" href="/marca/favicon.svg?v=${icono}">`);
-    if (css) html = html.replace('</head>', `<link rel="stylesheet" href="/marca/marca.css?v=${css}">\n</head>`);
-    if (js) html = html.replace('</body>', `<script type="module" src="/marca/marca.js?v=${js}"></script>\n</body>`);
+    if (entradaCss) cabeza.push(`<link rel="stylesheet" href="/cliente/entrada.css?v=${entradaCss}">`);
+    if (marcaCss) cabeza.push(`<link rel="stylesheet" href="/marca/marca.css?v=${marcaCss}">`);
+    if (marcaJs) cuerpo.push(`<script type="module" src="/marca/marca.js?v=${marcaJs}"></script>`);
+    if (entradaJs) cuerpo.push(`<script type="module" src="/cliente/entrada.js?v=${entradaJs}"></script>`);
+    html = html.replace('</head>', `${cabeza.join('\n')}\n</head>`).replace('</body>', `${cuerpo.join('\n')}\n</body>`);
     const body = Buffer.from(html);
     res.writeHead(200, {
         'Content-Type': MIME['.html'],
@@ -158,6 +248,20 @@ function sendIndex(req, res) {
         ...SECURITY,
     });
     res.end(req.method === 'HEAD' ? undefined : body);
+}
+
+function datosSala(s) {
+    const e = estado.get(s.id) || { online: false, map: s.mapa, players: 0, bots: 0 };
+    return {
+        id: s.id,
+        nombre: s.nombre,
+        mapa: e.map,
+        jugadores: Math.max(e.players - e.bots, 0),
+        bots: e.bots,
+        max: s.maxJugadores,
+        web: bridge.contarSala(s.id),
+        online: e.online,
+    };
 }
 
 function handler(req, res) {
@@ -184,82 +288,91 @@ function handler(req, res) {
     }
 
     if (pathname === '/api/status') {
-        const body = JSON.stringify({
-            hostname: cfg.hostname,
-            map: game.map,
-            maxPlayers: cfg.maxPlayers,
-            webPlayers: bridge.count,
+        // forma de siempre (la usa el cliente), para la sala elegida con ?sala=
+        const s = buscarSala(url.searchParams.get('sala'));
+        const d = datosSala(s);
+        return sendJson(res, {
+            hostname: s.nombre,
+            map: d.mapa,
+            maxPlayers: s.maxJugadores,
+            webPlayers: d.web,
             needsPassword: Boolean(cfg.password),
-            serverOnline: game.online,
-            assets: readAssets(),
+            serverOnline: d.online,
+            assets: assetsParaCliente(),
+            sala: s.id,
+            salas: salas.length,
         });
-        res.writeHead(200, { 'Content-Type': MIME['.json'], 'Cache-Control': 'no-store', ...SECURITY });
-        res.end(body);
-        return;
+    }
+
+    if (pathname === '/api/salas') {
+        return sendJson(res, {
+            nombre: cfg.hostname,
+            archivos: cfg.archivos,
+            needsPassword: Boolean(cfg.password),
+            salas: salas.map(datosSala),
+        });
     }
 
     if (pathname === '/game/valve.zip') {
-        // El navegador lo guarda en IndexedDB según la versión: no hace falta caché HTTP.
-        sendFile(req, res, path.join(cfg.data, 'valve.zip'), 'no-store', readAssets()?.version);
-        return;
-    }
-
-    if (pathname === '/' || pathname === '/index.html') {
-        sendIndex(req, res);
-        return;
-    }
-
-    if (pathname.startsWith('/marca/')) {
-        const archivo = path.resolve(MARCA, pathname.slice('/marca/'.length));
-        if (!archivo.startsWith(MARCA + path.sep)) {
-            res.writeHead(403, SECURITY);
-            res.end();
-            return;
+        if (cfg.archivos === 'propios') {
+            return sendText(res, 404, 'Este servidor es público: usá tus propios archivos del juego.');
         }
-        sendFile(req, res, archivo, 'no-cache');
-        return;
+        if (!claveOk(url.searchParams.get('clave'))) return sendText(res, 403, 'Falta la contraseña del servidor.');
+        // El navegador lo guarda en IndexedDB según la versión: no hace falta caché HTTP.
+        return sendFile(req, res, path.join(cfg.data, 'valve.zip'), 'no-store', leerAssets()?.version);
     }
+
+    if (pathname === '/game/mod.zip') {
+        return sendFile(req, res, path.join(cfg.data, 'mod.zip'), 'no-store', leerMod()?.version);
+    }
+
+    if (pathname === '/' || pathname === '/index.html') return sendIndex(req, res);
+    if (pathname.startsWith('/cliente/')) return servirDe(CLIENTE, pathname.slice('/cliente/'.length), req, res);
+    if (pathname.startsWith('/marca/')) return servirDe(MARCA, pathname.slice('/marca/'.length), req, res);
 
     const rel = pathname.replace(/^\/+/, '');
-    const file = path.resolve(PUBLIC, rel);
-    if (!file.startsWith(PUBLIC + path.sep)) {
-        res.writeHead(403, SECURITY);
-        res.end();
-        return;
-    }
     // Los archivos de assets/ llevan hash en el nombre: se pueden guardar para siempre.
     const immutable = rel.startsWith('assets/');
-    sendFile(req, res, file, immutable ? 'public, max-age=31536000, immutable' : 'no-cache');
+    return servirDe(PUBLIC, rel, req, res, immutable ? 'public, max-age=31536000, immutable' : 'no-cache');
 }
 
 // --------------------------------------------------------------- WebRTC
+cfg.maxPeers = salas.reduce((n, s) => n + s.maxJugadores + 2, 0) + 4;
 const bridge = new RtcBridge(cfg);
-bridge.on('join', (p) => log(`[web] jugador conectado (${bridge.count} en línea)`));
-bridge.on('leave', (p, why) => log(`[web] jugador desconectado: ${why} (${bridge.count} en línea)`));
+bridge.on('join', (p) => log(`[web] jugador conectado a la sala ${p.sala} (${bridge.count} en línea)`));
+bridge.on('leave', (p, why) => log(`[web] jugador desconectado de la sala ${p.sala}: ${why} (${bridge.count} en línea)`));
+
+function ipDe(req) {
+    const directa = (req.socket.remoteAddress || '').replace(/^::ffff:/, '');
+    if (!cfg.confiarProxy) return directa;
+    const reenviada = String(req.headers['x-forwarded-for'] || '').split(',')[0].trim();
+    return reenviada || directa;
+}
 
 const httpServer = http.createServer(handler);
 httpServer.headersTimeout = 20000;
 httpServer.requestTimeout = 0; // la descarga de valve.zip puede tardar
 const wss = new WebSocketServer({ noServer: true, maxPayload: 64 * 1024 });
 httpServer.on('upgrade', (req, socket, head) => {
-    let pathname = '';
+    let url = null;
     try {
-        pathname = new URL(req.url, 'http://localhost').pathname;
+        url = new URL(req.url, 'http://localhost');
     } catch { /* url rota */ }
-    if (pathname !== '/signal') {
+    if (!url || url.pathname !== '/signal') {
         socket.destroy();
         return;
     }
+    const sala = buscarSala(url.searchParams.get('sala'));
     wss.handleUpgrade(req, socket, head, (ws) => {
-        const remote = (req.socket.remoteAddress || '').replace(/^::ffff:/, '');
-        bridge.handle(ws, remote);
+        cfg.maxPeers = salas.reduce((n, s) => n + s.maxJugadores + 2, 0) + 4;
+        bridge.handle(ws, ipDe(req), sala);
     });
 });
 
 httpServer.listen(cfg.httpPort, '0.0.0.0', () => {
     log(`[web] página del juego en el puerto ${cfg.httpPort}; WebRTC en UDP ${cfg.webrtcPort}` +
-        (cfg.publicIp ? ` anunciando ${cfg.publicIp}` : ''));
-    if (!readAssets()) log('[web] aviso: todavía no hay valve.zip/assets.json en ' + cfg.data);
+        (cfg.publicIp ? ` anunciando ${cfg.publicIp}` : '') + `; archivos del juego: ${cfg.archivos}`);
+    if (!assetsParaCliente()) log(`[web] aviso: todavía no hay ${cfg.archivos === 'propios' ? 'mod.zip' : 'valve.zip'} en ${cfg.data}`);
 });
 
 let shuttingDown = false;

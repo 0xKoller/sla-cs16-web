@@ -28,18 +28,25 @@ export function guardarAjustes(cambios) {
 
 // ------------------------------------------------------------------ juego
 // Habla con el motor (window.xash). Gira con las "teclas" de girar del juego
-// (+left/+right/+lookup/+lookdown) a la velocidad justa en cada cuadro: anda con o sin
-// el mouse capturado. Con metodo 'mouse' (y el mouse capturado) mueve la mira como si
-// fuera el mouse.
+// (+left/+right/+lookup/+lookdown) a la velocidad justa: anda con o sin el mouse
+// capturado. Lleva la cuenta de cuánto falta girar, así los movimientos chiquitos del dedo
+// también llegan (antes se perdían y la mira parecía trabada) y no se pasa de largo.
+// Con metodo 'mouse' (y el mouse capturado) mueve la mira como si fuera el mouse.
 const VEL_YAW = 210;    // valores normales del juego, se devuelven al soltar
 const VEL_PITCH = 225;
 
-class Juego {
-    constructor(metodo = 'teclas') {
+export class Juego {
+    constructor(metodo = 'teclas', reloj = () => performance.now()) {
         this.metodo = metodo;
+        this.reloj = reloj;
         this.restoX = 0;
         this.restoY = 0;
         this.teclas = { yaw: 0, pitch: 0 };
+        this.vel = { yaw: 0, pitch: 0 };       // grados por segundo que tiene puestos el motor
+        this.pendiente = { yaw: 0, pitch: 0 }; // grados que faltan girar
+        this.ultimoCmdT = null;
+        this.intervalo = 1 / 30;               // cada cuánto llegan datos de la cámara (promedio)
+        this.freno = null;
         this.disparando = false;
     }
 
@@ -56,7 +63,7 @@ class Juego {
         return document.getElementById('canvas');
     }
 
-    // dx, dy en grados; dt en segundos desde el cuadro anterior
+    // dx, dy en grados; dt en segundos desde el cuadro anterior de la cámara
     mirar(dx, dy, dt) {
         if (!this.motor) return;
         const canvas = this.canvas();
@@ -71,16 +78,41 @@ class Juego {
             this.restoX -= mx;
             this.restoY -= my;
             if (mx || my) moverMouse(canvas, mx, my);
-        } else {
-            this.girarConTeclas(dt > 0 ? dx / dt : 0, dt > 0 ? dy / dt : 0);
+            return;
         }
+        const ahora = this.reloj();
+        if (this.ultimoCmdT !== null) {
+            // lo que el motor ya giró con la velocidad que tenía puesta
+            const pasado = Math.min((ahora - this.ultimoCmdT) / 1000, 0.2);
+            for (const eje of ['yaw', 'pitch']) {
+                const hecho = this.vel[eje] * pasado;
+                const antes = this.pendiente[eje];
+                this.pendiente[eje] -= hecho;
+                if (Math.sign(this.pendiente[eje]) !== Math.sign(antes)) this.pendiente[eje] = 0; // no pasarse
+            }
+        }
+        if (dt > 0 && dt < 0.25) this.intervalo += (dt - this.intervalo) * 0.2;
+        this.pendiente.yaw += dx;
+        this.pendiente.pitch += dy;
+        // cubrir lo pendiente en lo que tarda en llegar el próximo cuadro
+        const plazo = Math.min(Math.max(this.intervalo, 1 / 60), 0.1);
+        this.girarConTeclas(this.pendiente.yaw / plazo, this.pendiente.pitch / plazo);
+        this.ultimoCmdT = ahora;
+        // si no llega otro cuadro a tiempo (la cámara se trabó), frenar
+        clearTimeout(this.freno);
+        this.freno = setTimeout(() => {
+            this.pendiente = { yaw: 0, pitch: 0 };
+            this.soltarTeclas();
+        }, Math.max(plazo * 2500, 120));
     }
 
     girarConTeclas(velYaw, velPitch) {
         const poner = (eje, vel, cvar, negativo, positivo) => {
-            const dir = Math.abs(vel) < 2 ? 0 : Math.sign(vel);
+            const dir = Math.abs(vel) < 0.5 ? 0 : Math.sign(vel);
             const actual = this.teclas[eje];
-            if (dir !== 0) this.cmd(`${cvar} ${Math.min(Math.abs(vel), 1500).toFixed(1)}`);
+            const valor = Math.min(Math.abs(vel), 900);
+            if (dir !== 0) this.cmd(`${cvar} ${valor.toFixed(1)}`);
+            this.vel[eje] = dir * valor;
             if (dir !== actual) {
                 if (actual === 1) this.cmd(`-${positivo}`);
                 if (actual === -1) this.cmd(`-${negativo}`);
@@ -95,7 +127,9 @@ class Juego {
     }
 
     soltarTeclas() {
+        this.vel = { yaw: 0, pitch: 0 };
         if (this.teclas.yaw || this.teclas.pitch) this.girarConTeclas(0, 0);
+        this.ultimoCmdT = null;
     }
 
     disparar(si) {
@@ -111,6 +145,8 @@ class Juego {
 
     soltarTodo() {
         this.disparar(false);
+        clearTimeout(this.freno);
+        this.pendiente = { yaw: 0, pitch: 0 };
         this.soltarTeclas();
     }
 }
@@ -140,7 +176,14 @@ const ESTILO = `
 #manos-panel button:hover{border-color:#0d8750}
 #manos-panel .sens{min-width:30px;text-align:center;color:#a4a4a4}
 #manos-panel .ayuda{margin-top:5px;color:#a4a4a4;font-size:11px}
-#manos-panel.pausa canvas{opacity:.35}
+#manos-panel .modo{background:#0d8750;border-color:#0d8750}
+#manos-panel .modo:hover{filter:brightness(1.12);border-color:#0d8750}
+#manos-panel kbd{font:600 10px ui-monospace,Menlo,monospace;color:#f5f5f5;background:#262626;
+  border:1px solid #ffffff1f;border-radius:4px;padding:0 4px}
+#manos-panel.pausa{width:auto}
+#manos-panel.pausa canvas,#manos-panel.pausa .ayuda,#manos-panel.pausa [data-a=menos],
+#manos-panel.pausa [data-a=mas],#manos-panel.pausa .sens{display:none}
+#manos-panel.pausa .fila{margin-top:0}
 `;
 
 class Panel {
@@ -158,8 +201,9 @@ class Panel {
           <div class="fila"><span class="estado">Cargando detector…</span>
             <button data-a="menos" title="Menos sensibilidad">−</button><span class="sens"></span>
             <button data-a="mas" title="Más sensibilidad">+</button>
-            <button data-a="pausa" title="Pausar el control con la mano">❚❚</button></div>
-          <div class="ayuda">Índice apunta · bajá el pulgar = disparo · mano abierta = recarga</div>`;
+            <button data-a="pausa" class="modo" title="Cambiar entre la mano y el mouse (⌥ Option + H)">Mouse</button></div>
+          <div class="ayuda">Índice apunta · bajá el pulgar = disparo · mano abierta = recarga ·
+            <kbd>⌥H</kbd> mano / mouse</div>`;
         document.body.append(this.el);
         this.canvas = this.el.querySelector('canvas');
         this.ctx = this.canvas.getContext('2d');
@@ -172,10 +216,7 @@ class Panel {
             const a = e.target.closest('button')?.dataset.a;
             if (!a) return;
             if (a === 'pausa') {
-                this.pausado = !this.pausado;
-                this.el.classList.toggle('pausa', this.pausado);
-                e.target.textContent = this.pausado ? '▶' : '❚❚';
-                alCambiar({ pausa: this.pausado });
+                alCambiar({ pausa: !this.pausado });
                 return;
             }
             const s = Math.round(Math.min(Math.max(this.ajustes.sensibilidad + (a === 'mas' ? 0.1 : -0.1), 0.2), 4) * 10) / 10;
@@ -187,6 +228,15 @@ class Panel {
 
     mostrarSens() {
         this.sensEl.textContent = this.ajustes.sensibilidad.toFixed(1);
+    }
+
+    pausar(si) {
+        this.pausado = si;
+        this.el.classList.toggle('pausa', si);
+        const b = this.el.querySelector('[data-a=pausa]');
+        b.textContent = si ? 'Usar la mano' : 'Mouse';
+        b.title = si ? 'Volver a apuntar con la mano (⌥ Option + H)' : 'Jugar con el mouse (⌥ Option + H)';
+        if (si) this.estado('Mouse y teclado', '#a4a4a4');
     }
 
     estado(texto, color = '#a4a4a4') {
@@ -251,8 +301,44 @@ function manoDemo(t) {
     });
 }
 
+// Cartelito abajo al centro (usa el mismo lugar que los avisos de la página)
+let avisoTimer = null;
+function aviso(texto) {
+    const el = document.getElementById('toast');
+    if (!el) return;
+    el.textContent = texto;
+    el.classList.add('show');
+    clearTimeout(avisoTimer);
+    avisoTimer = setTimeout(() => el.classList.remove('show'), 3500);
+}
+
 // ------------------------------------------------------------------ inicio
 let activo = null;
+
+// ⌥H: si el control con la mano no estaba prendido lo prende; si estaba, cambia mano/mouse.
+export async function alternar(opciones = {}) {
+    if (!activo) return iniciar(opciones);
+    activo.alternar();
+    return activo;
+}
+
+// ⌥ Option + H (Alt + H) durante el juego. El juego no se entera de esa tecla.
+export function esAtajo(e) {
+    return e.altKey && !e.ctrlKey && !e.metaKey && e.code === 'KeyH';
+}
+let atajoListo = false;
+function registrarAtajo() {
+    if (atajoListo) return;
+    atajoListo = true;
+    const tapar = (e) => {
+        if (!esAtajo(e)) return;
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        if (e.type === 'keydown' && !e.repeat && activo) activo.alternar();
+    };
+    window.addEventListener('keydown', tapar, true);
+    window.addEventListener('keyup', tapar, true);
+}
 
 export async function iniciar({ demo = false } = {}) {
     if (activo) return activo;
@@ -260,15 +346,16 @@ export async function iniciar({ demo = false } = {}) {
     const control = new ControlManos(ajustes);
     const juego = new Juego(ajustes.metodo);
     let pausa = false;
+    const ponerPausa = (si) => {
+        pausa = si;
+        control.sinMano();
+        juego.soltarTodo();
+        panel.pausar(si);
+        aviso(si ? 'Jugando con mouse y teclado · ⌥H para volver a la mano' : 'Apuntando con la mano · ⌥H para el mouse');
+    };
     const panel = new Panel(ajustes, (cambio) => {
         if ('sensibilidad' in cambio) control.ajustes.sensibilidad = cambio.sensibilidad;
-        if ('pausa' in cambio) {
-            pausa = cambio.pausa;
-            if (pausa) {
-                control.sinMano();
-                juego.soltarTodo();
-            }
-        }
+        if ('pausa' in cambio) ponerPausa(cambio.pausa);
     });
     let ultimoT = null;
 
@@ -276,12 +363,8 @@ export async function iniciar({ demo = false } = {}) {
         const t = performance.now();
         const dt = ultimoT === null ? 0 : (t - ultimoT) / 1000;
         ultimoT = t;
-        if (pausa) {
-            panel.dibujar(imagen, puntos, null);
-            panel.estado('En pausa');
-            return;
-        }
-        const out = puntos ? control.actualizar(puntos, aspecto, t) : control.sinMano();
+        if (pausa) return;
+        const out = puntos ? control.actualizar(puntos, aspecto, t) : control.sinMano(t);
         if (out.mano) {
             juego.mirar(out.dx, out.dy, dt);
             if (out.disparar) juego.disparar(true);
@@ -298,7 +381,8 @@ export async function iniciar({ demo = false } = {}) {
         else panel.estado('Apuntando', '#1fbf75');
     };
 
-    activo = { control, juego, panel, detener: null };
+    activo = { control, juego, panel, detener: null, alternar: () => ponerPausa(!pausa), get pausa() { return pausa; } };
+    registrarAtajo();
     window.manos = activo;
 
     if (demo) {
@@ -358,7 +442,7 @@ export async function iniciar({ demo = false } = {}) {
     (async () => {
         while (corriendo) {
             await esperarCuadro();
-            if (!corriendo || video.readyState < 2) continue;
+            if (!corriendo || video.readyState < 2 || activo?.pausa) continue;
             const t0 = performance.now();
             ultimoResultado = null;
             try {
