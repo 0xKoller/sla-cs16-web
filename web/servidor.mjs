@@ -20,6 +20,9 @@ const cfg = {
     httpPort: Number(env('PUERTO_WEB', '27016')),
     webrtcPort: Number(env('PUERTO_WEBRTC', '27018')),
     publicIp: env('IP_PUBLICA', ''),
+    // Dirección pública del juego (https://...). Si la página llega por otra (Vercel), el
+    // navegador se conecta y baja los paquetes directo de acá.
+    urlJuego: env('URL_JUEGO', ''),
     hostname: env('NOMBRE_SERVIDOR', 'CS 1.6'),
     map: env('MAPA', 'de_dust2'),
     maxPlayers: Number(env('MAX_JUGADORES', '12')),
@@ -177,6 +180,7 @@ function sendFile(req, res, file, cacheControl, etag) {
         'Content-Length': stat.size,
         'Cache-Control': cacheControl,
         'Last-Modified': stat.mtime.toUTCString(),
+        ...(path.extname(file) === '.zip' ? CORS : {}),
         ...SECURITY,
     };
     if (etag) {
@@ -203,13 +207,27 @@ function sendFile(req, res, file, cacheControl, etag) {
     stream.pipe(res);
 }
 
+// Solo una dirección https válida (la del modo online); si no, la página usa la propia.
+function origenPublico(url) {
+    try {
+        const u = new URL(url);
+        return u.protocol === 'https:' ? u.origin : '';
+    } catch {
+        return '';
+    }
+}
+
+// El estado y los paquetes se pueden pedir desde otra dirección (la página en Vercel):
+// son públicos y valve.zip igual pide la contraseña.
+const CORS = { 'Access-Control-Allow-Origin': '*' };
+
 function sendJson(res, data, status = 200) {
-    res.writeHead(status, { 'Content-Type': MIME['.json'], 'Cache-Control': 'no-store', ...SECURITY });
+    res.writeHead(status, { 'Content-Type': MIME['.json'], 'Cache-Control': 'no-store', ...CORS, ...SECURITY });
     res.end(JSON.stringify(data));
 }
 
 function sendText(res, status, texto) {
-    res.writeHead(status, { 'Content-Type': 'text/plain; charset=utf-8', ...SECURITY });
+    res.writeHead(status, { 'Content-Type': 'text/plain; charset=utf-8', ...CORS, ...SECURITY });
     res.end(texto);
 }
 
@@ -260,6 +278,8 @@ function sendIndex(req, res) {
     if (marcaCss) cabeza.push(`<link rel="stylesheet" href="/marca/marca.css?v=${marcaCss}">`);
     if (marcaJs) cuerpo.push(`<script type="module" src="/marca/marca.js?v=${marcaJs}"></script>`);
     if (entradaJs) cuerpo.push(`<script type="module" src="/cliente/entrada.js?v=${entradaJs}"></script>`);
+    const servidor = origenPublico(cfg.urlJuego);
+    if (servidor) cabeza.unshift(`<script>window.cs16Servidor=${JSON.stringify(servidor)}</script>`);
     html = html.replace('</head>', `${cabeza.join('\n')}\n</head>`).replace('</body>', `${cuerpo.join('\n')}\n</body>`);
     const body = Buffer.from(html);
     res.writeHead(200, {

@@ -36,3 +36,10 @@ test('avisa si falta algo necesario', () => {
     const mal = seleccionar([f('Descargas/foto.jpg'), f('cstrike/liblist.gam')]);
     assert.deepEqual(mal.faltan, ['valve/halflife.wad', 'cstrike/maps/de_dust2.bsp']);
 });
+
+test('con la página en otra dirección, los paquetes se bajan del servidor del juego', async () => {
+    const { directo } = await import('./archivos.js');
+    assert.equal(directo('/game/valve.zip', 'https://1-2-3-4.sslip.io', 'https://slagames.vercel.app'), 'https://1-2-3-4.sslip.io/game/valve.zip');
+    assert.equal(directo('/game/valve.zip', 'https://1-2-3-4.sslip.io', 'https://1-2-3-4.sslip.io'), '/game/valve.zip');
+    assert.equal(directo('/game/mod.zip', undefined, 'http://localhost:27016'), '/game/mod.zip');
+});

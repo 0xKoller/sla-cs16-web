@@ -106,6 +106,12 @@ cobrarse. Apagarlo no alcanza.
 
    El link `https://<tu-ip>.sslip.io` sigue andando: los dos tienen HTTPS.
 
+### Dirección linda sin dominio propio: Vercel
+
+Vercel no puede correr las salas, pero sirve de puerta de entrada gratis con una dirección
+como `https://slagames.vercel.app`: muestra la página del servidor y el navegador juega y
+baja los archivos directo del servidor. Pasos en [vercel/LEEME.md](../vercel/LEEME.md).
+
 ### Si el proveedor tiene firewall propio
 
 Algunos (Hetzner, AWS, Google Cloud, Oracle) tienen un firewall aparte del servidor.

@@ -53,6 +53,7 @@ services:
       - "${BIND_UDP:-127.0.0.1}:27018:27018/udp"   # tráfico del juego (WebRTC)
     environment:
       IP_PUBLICA: "${IP_PUBLICA:-127.0.0.1}"
+      URL_JUEGO: "${URL_JUEGO:-}"   # dirección pública (online); la usa la página si llega por Vercel
       NOMBRE_SERVIDOR: "${NOMBRE_SERVIDOR:-CS 1.6}"
       MAPA: "${MAPA:-de_dust2}"
       MAX_JUGADORES: "${MAX_JUGADORES:-12}"

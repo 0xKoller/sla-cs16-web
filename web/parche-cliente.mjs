@@ -13,13 +13,15 @@
 //  4. Salas: el estado y la conexión van a la sala elegida (window.cs16Sala).
 //  5. Archivos del juego: si la página define window.cs16CargarArchivos, se usa en vez
 //     de bajar valve.zip (servidores públicos con archivos propios; ver cliente/archivos.js).
+//  6. Si la página llega por otra dirección (por ejemplo Vercel, que no pasa WebSockets),
+//     la conexión va directo al servidor del juego: window.cs16Servidor (lo pone la web).
 
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 
 const PUB = path.resolve(process.argv[2] || 'public');
-const MARCA = '/*cs16-parche-2*/';
+const MARCA = '/*cs16-parche-3*/';
 
 const CAMBIOS = [
   {
@@ -80,7 +82,7 @@ const CAMBIOS = [
   {
     nombre: 'conexión a la sala elegida',
     viejo: 'new WebSocket(`${a}://${location.host}/signal`)',
-    nuevo: 'new WebSocket(`${a}://${location.host}/signal${window.cs16Sala?"?sala="+encodeURIComponent(window.cs16Sala):""}`)',
+    nuevo: 'new WebSocket(`${a}://${window.cs16Servidor?new URL(window.cs16Servidor).host:location.host}/signal${window.cs16Sala?"?sala="+encodeURIComponent(window.cs16Sala):""}`)',
   },
   {
     nombre: 'archivos del juego: enganche',

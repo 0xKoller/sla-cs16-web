@@ -155,8 +155,15 @@ export async function volcar(sink, progreso = () => {}) {
 // ----------------------------------------------- enganche con el cliente
 // Lo llama el cliente del juego (parche) en lugar de bajar valve.zip.
 // estadoServidor().assets.propios dice si este servidor usa archivos propios.
+// Si la página llegó por otra dirección (por ejemplo Vercel), los paquetes grandes se bajan
+// directo del servidor del juego (window.cs16Servidor, lo pone la web).
+export function directo(ruta, servidor = globalThis.cs16Servidor, origen = globalThis.location?.origin) {
+    return servidor && servidor !== origen ? servidor + ruta : ruta;
+}
+
 export function instalarEnganche(estadoServidor, clave = () => '') {
     window.cs16CargarArchivos = async (url, version, tamano, sink, progreso, cargarZip) => {
+        url = directo(url);
         const assets = estadoServidor()?.assets;
         if (!assets?.propios) {
             const c = clave();
@@ -165,6 +172,6 @@ export function instalarEnganche(estadoServidor, clave = () => '') {
         if (!(await estado())) throw new Error('Primero elegí tus archivos de Counter-Strike 1.6 (botón «Elegir carpeta»).');
         await volcar(sink, (b, total) => progreso('cache', b, total));
         // después lo propio de la comunidad, que pisa lo que haga falta
-        return cargarZip('/game/mod.zip', assets.version, assets.size, sink, progreso);
+        return cargarZip(directo('/game/mod.zip'), assets.version, assets.size, sink, progreso);
     };
 }
