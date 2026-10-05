@@ -8,6 +8,7 @@
 import * as archivos from './archivos.js';
 import { entrarAlEquipo } from './equipo.js';
 import * as tactil from './tactil.js';
+import { vigilar } from './sesion.js';
 
 const $ = (id) => document.getElementById(id);
 const form = $('form');
@@ -187,6 +188,12 @@ function crearManos() {
         'La imagen de la cámara no sale de tu compu.';
     const casilla = fila.querySelector('input');
     const param = params.get('manos');
+    // En un celular o tablet sin mouse no tiene sentido (se juega con los controles táctiles)
+    if (matchMedia('(pointer: coarse)').matches && !matchMedia('(any-pointer: fine)').matches && param === null) {
+        fila.hidden = true;
+        ayuda.hidden = true;
+        return { fila, ayuda, casilla, demo: false };
+    }
     casilla.checked = param !== null ? param !== '0' : leer('cs16:manos-activo') === '1';
     const mostrar = () => { ayuda.hidden = !casilla.checked; };
     mostrar();
@@ -198,6 +205,15 @@ function crearManos() {
 }
 
 const cargarManos = () => import('./manos/manos.js');
+
+// Aviso corto abajo (usa el mismo cartelito que la página)
+function avisoBreve(texto, ms = 7000) {
+    const t = $('toast');
+    if (!t) return;
+    t.textContent = texto;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), ms);
+}
 
 // ⌥/Alt + H en cualquier momento del juego: prende el control con la mano o cambia mano ↔ mouse
 window.addEventListener('keydown', (e) => {
@@ -255,9 +271,15 @@ if (form && jugar && lobby && !document.querySelector('.cs16-equipo')) {
     actualizarSalas(cajaSalas);
     setInterval(() => { if (!lobby.hidden) actualizarSalas(cajaSalas); }, 5000);
 
+    vigilar();   // si se corta la conexión con la sala, cartel con «Volver a entrar»
+
+    let entrando = false;
     form.addEventListener('submit', () => {
-        if (jugar.dataset.bloqueado) return;
-        entrarAlEquipo(equipoElegido()).catch((e) => console.warn('[equipo]', e));
+        if (jugar.dataset.bloqueado || entrando) return;
+        entrando = true;   // una sola vez: pedir dos veces el equipo te mataría
+        entrarAlEquipo(equipoElegido())
+            .then((ok) => { if (ok) avisoBreve('Si la ronda ya empezó, entrás en la próxima: mientras tanto mirás la partida.'); })
+            .catch((e) => console.warn('[equipo]', e));
         // celular: botones grandes de «Comprar», «Compra rápida» y «Equipo»
         if ($('touch')?.checked) tactil.activar();
         if (manos.casilla.checked) {

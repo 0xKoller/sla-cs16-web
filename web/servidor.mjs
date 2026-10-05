@@ -207,6 +207,8 @@ function sendFile(req, res, file, cacheControl, etag) {
     stream.pipe(res);
 }
 
+const escaparHtml = (t) => String(t).replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
+
 // Solo una dirección https válida (la del modo online); si no, la página usa la propia.
 function origenPublico(url) {
     try {
@@ -280,6 +282,23 @@ function sendIndex(req, res) {
     if (entradaJs) cuerpo.push(`<script type="module" src="/cliente/entrada.js?v=${entradaJs}"></script>`);
     const servidor = origenPublico(cfg.urlJuego);
     if (servidor) cabeza.unshift(`<script>window.cs16Servidor=${JSON.stringify(servidor)}</script>`);
+    // Título y vista previa al compartir el link (WhatsApp, redes): nombre del servidor e
+    // imagen de la marca (marca/web/og.png), si existe.
+    const titulo = escaparHtml(cfg.hostname || 'Counter-Strike 1.6');
+    const descripcion = 'Counter-Strike 1.6 en el navegador, sin instalar nada.';
+    html = html.replace(/<title>[^<]*<\/title>/, `<title>${titulo}</title>`);
+    cabeza.unshift(
+        `<meta name="description" content="${descripcion}">`,
+        `<meta property="og:type" content="website">`,
+        `<meta property="og:title" content="${titulo}">`,
+        `<meta property="og:description" content="${descripcion}">`,
+    );
+    const og = v(path.join(MARCA, 'og.png'));
+    if (og && servidor) {
+        cabeza.unshift(`<meta property="og:image" content="${servidor}/marca/og.png?v=${og}">`,
+            '<meta property="og:image:width" content="1200">', '<meta property="og:image:height" content="630">',
+            '<meta name="twitter:card" content="summary_large_image">');
+    }
     html = html.replace('</head>', `${cabeza.join('\n')}\n</head>`).replace('</body>', `${cuerpo.join('\n')}\n</body>`);
     const body = Buffer.from(html);
     res.writeHead(200, {

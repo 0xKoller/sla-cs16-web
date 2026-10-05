@@ -146,7 +146,7 @@ env_set URL_JUEGO "$URL"
 env_set CONFIAR_PROXY "$PROXY"
 env_set HOST_UID "$(id -u):$(id -g)"
 
-# Salas: si no hay config/salas.conf se arma uno (en modo online, con dos salas)
+# Salas: si no hay config/salas.conf se arma uno (en modo online: con bots, más bots y solo humanos)
 if [ ! -s config/salas.conf ]; then
   nombre=$(env_get NOMBRE_SERVIDOR | sed 's/|/·/g')
   {
@@ -155,6 +155,7 @@ if [ ! -s config/salas.conf ]; then
     if [ "$MODO" = "online" ]; then
       printf '1 | %s · Clásico | de_dust2   | 12 | 4 | 1\n' "$nombre"
       printf '2 | %s · Inferno | de_inferno | 12 | 2 | 2\n' "$nombre"
+      printf '3 | %s · Solo humanos | de_dust2 | 12 | 0 | 0\n' "$nombre"
     else
       printf '1 | %s | %s | %s | %s | %s\n' "$nombre" "$(env_get MAPA)" "$(env_get MAX_JUGADORES)" \
         "$(env_get BOTS)" "$(env_get BOTS_DIFICULTAD)"

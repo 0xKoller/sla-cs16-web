@@ -5,6 +5,9 @@ Counter-Strike 1.6 que se juega desde el navegador, sin instalar nada, con la ma
 cambiarles las texturas, y un modo para **apuntar y disparar con la mano** usando la
 cámara.
 
+**🎮 Jugar ahora: [sla-cs.vercel.app](https://sla-cs.vercel.app)** (el servidor de la comunidad
+SLA; pedí la contraseña en SLA).
+
 > **English summary.** Counter-Strike 1.6 in the browser (Xash3D FWGS compiled to
 > WebAssembly) with dedicated servers in Docker, a WebRTC ⇄ UDP bridge, multiple rooms,
 > a character texture studio and hand-tracking controls (MediaPipe). Public servers ask
@@ -35,8 +38,9 @@ cd cs16-web
 La primera vez tarda (10 a 20 minutos en una Mac con chip M): arma las imágenes, baja
 los archivos del juego (~600 MB) y prepara todo. Después arranca en un minuto.
 
-- **Juego:** http://localhost:27016 — poné tu nombre, elegí sala y equipo, y «Jugar».
-- **Estudio:** http://localhost:27080 — para editar los personajes.
+- **Juego:** `http://localhost:27016` (en tu compu, después de `./start.sh`): poné tu
+  nombre, elegí sala y equipo, y «Jugar».
+- **Estudio:** `http://localhost:27080` (también en tu compu): para editar los personajes.
 - `./start.sh lan` lo abre a tu red (Wi-Fi). `./stop.sh` apaga todo.
 
 ### Dentro del juego
@@ -87,15 +91,15 @@ curl -fsSL https://raw.githubusercontent.com/shugavibes/sla-cs16-web/main/deploy
   | sudo REPO=https://github.com/shugavibes/sla-cs16-web.git bash
 ```
 
-Instala Docker, abre solo los puertos necesarios, pone HTTPS automático y levanta dos
-salas. En los servidores públicos **cada jugador usa sus propios archivos de CS 1.6**
+Instala Docker, abre solo los puertos necesarios, pone HTTPS automático y levanta tres
+salas (con bots, con más bots y solo humanos). En los servidores públicos **cada jugador usa sus propios archivos de CS 1.6**
 (los elige una vez desde su compu y quedan en su navegador; no se suben a ningún lado):
 así no se reparte contenido de Valve. Todo el detalle — arquitectura, dominios, costos,
 cómo crecer — en **[docs/online.md](docs/online.md)**.
 
 ## Personajes y marca
 
-**Estudio** (http://localhost:27080): elegí un personaje, cambiá sus texturas (ajuste de
+**Estudio** (`http://localhost:27080`, en tu compu): elegí un personaje, cambiá sus texturas (ajuste de
 color, una imagen propia, o editando los PNG con tu programa) y tocá «Aplicar al juego».
 La forma del personaje y dónde pegan los tiros no cambian. Desde la terminal:
 `./texturas.sh lista | exportar <id> | aplicar`.

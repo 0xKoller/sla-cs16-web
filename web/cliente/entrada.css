@@ -144,38 +144,75 @@ body.cs16-propios #download-hint { display: none; }
    menús (compra, equipo). Con «dvh» ocupa exactamente lo que se ve. */
 canvas { width: 100vw; height: 100vh; width: 100dvw; height: 100dvh; }
 
-/* botones de tactil.js: arriba al centro, donde el juego no dibuja nada */
+/* botones de tactil.js: segunda fila arriba al centro, donde el juego no tiene botones
+   (el engranaje y los menús de bots/comandos se sacan) */
 .cs16-tactil {
     position: fixed;
-    top: calc(env(safe-area-inset-top, 0px) + 8px);
+    top: calc(env(safe-area-inset-top, 0px) + 15dvh);
     left: 50%;
     transform: translateX(-50%);
     z-index: 4;
     display: none;
-    gap: 8px;
+    gap: 6px;
     -webkit-user-select: none;
     user-select: none;
     touch-action: manipulation;
 }
 body.playing.cs16-tactil-on .cs16-tactil { display: flex; }
-.cs16-tactil button {
+.cs16-tactil button, .cs16-teclado button {
     all: unset;
-    min-height: 40px;
-    padding: 0 14px;
+    box-sizing: border-box;
     display: inline-flex;
     align-items: center;
+    justify-content: center;
     border-radius: 999px;
     background: #000000a6;
     border: 1px solid #ffffff3d;
     color: #fff;
-    font: 600 14px/1 "Geist", system-ui, sans-serif;
+    font: 600 13px/1 "Geist", system-ui, sans-serif;
     white-space: nowrap;
     cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
 }
-.cs16-tactil button:active { background: var(--accent, #0d8750); }
+.cs16-tactil button { min-height: 36px; padding: 0 12px; }
+.cs16-tactil button:active, .cs16-teclado button:active { background: var(--accent, #0d8750); }
+
+/* teclado de números para los menús del juego (compra, equipo) */
+.cs16-teclado {
+    position: fixed;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -38%);
+    z-index: 5;
+    width: min(420px, calc(100vw - 24px));
+    padding: 10px 12px 12px;
+    border-radius: 14px;
+    background: #000000b8;
+    border: 1px solid #ffffff2e;
+    -webkit-user-select: none;
+    user-select: none;
+    touch-action: manipulation;
+}
+.cs16-teclado[hidden], body:not(.playing) .cs16-teclado { display: none; }
+.cs16-teclado-titulo {
+    margin: 0 28px 8px 2px;
+    color: #fff;
+    font: 500 12.5px/1.35 "Geist", system-ui, sans-serif;
+}
+.cs16-teclado-numeros { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
+.cs16-teclado-numeros button { height: 46px; border-radius: 10px; font-size: 20px; }
+.cs16-teclado .cs16-teclado-cerrar {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    width: 30px;
+    height: 30px;
+    font-size: 14px;
+}
+
 .cs16-tactil-aviso {
     position: fixed;
-    top: calc(env(safe-area-inset-top, 0px) + 58px);
+    top: calc(env(safe-area-inset-top, 0px) + 15dvh + 46px);
     left: 50%;
     transform: translateX(-50%);
     z-index: 4;
@@ -191,3 +228,45 @@ body.playing.cs16-tactil-on .cs16-tactil { display: flex; }
     pointer-events: none;
 }
 .cs16-tactil-aviso[hidden], body:not(.playing) .cs16-tactil-aviso { display: none; }
+
+/* celular vertical: pedir que lo giren */
+.cs16-girar { display: none; }
+@media (orientation: portrait) {
+    body.playing.cs16-tactil-on .cs16-girar {
+        position: fixed;
+        inset: 0;
+        z-index: 6;
+        display: grid;
+        place-items: center;
+        background: #0e0f0cf2;
+        color: #fff;
+        font: 600 18px/1.4 "Geist", system-ui, sans-serif;
+        text-align: center;
+        padding: 24px;
+    }
+}
+
+/* sesion.js: se cortó la conexión con la sala */
+.cs16-corte {
+    position: fixed;
+    inset: 0;
+    z-index: 7;
+    display: grid;
+    place-items: center;
+    padding: 16px;
+    background: #000000c7;
+}
+.cs16-corte[hidden] { display: none; }
+.cs16-corte-caja {
+    width: min(420px, 100%);
+    padding: 22px;
+    border-radius: 14px;
+    background: var(--panel, #1f1f1f);
+    border: 1px solid var(--line, #ffffff1f);
+    color: var(--text, #f5f5f5);
+    font-family: "Geist", system-ui, sans-serif;
+    text-align: center;
+}
+.cs16-corte-caja h2 { margin: 0 0 8px; font-size: 18px; }
+.cs16-corte-caja p { margin: 0 0 16px; color: var(--muted, #a4a4a4); font-size: 14px; line-height: 1.45; }
+.cs16-corte-caja button { width: 100%; margin: 0; }
