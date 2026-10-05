@@ -7,8 +7,9 @@
 //     «OK»: tocar el número ya elige (o compra); el 0 cierra.
 //   - «Compra rápida»: rifle, chaleco, pistola y granadas de un toque.
 //   - Se sacan del juego los botones que llevaban a pantallas que no sirven acá: el
-//     engranaje (editor de controles, «la pantalla de configuración»), los menús de bots
-//     y de comandos, y los de compra/equipo del juego (reemplazados por estos).
+//     engranaje (editor de controles, «la pantalla de configuración»), los menús de bots,
+//     comandos y radio, el chat (pide teclado) y los de compra/equipo del juego
+//     (reemplazados por estos).
 //   - Con el celular vertical, un cartel pide girarlo.
 
 // Compra rápida: rifle (el de tu equipo; el otro el servidor lo rechaza), chaleco con
@@ -16,7 +17,8 @@
 export const COMPRA_RAPIDA = ['m4a1', 'ak47', 'vesthelm', 'deagle', 'primammo', 'secammo', 'hegren', 'flash', 'defuser'];
 
 // Botones del juego (cs16-client) que se sacan con controles táctiles
-export const BOTONES_FUERA = ['touch_edit', 'bots', 'cmd', 'buy', 'change_team'];
+// (el chat y la radio también: piden teclado o números y en el celular quedaban colgados)
+export const BOTONES_FUERA = ['touch_edit', 'bots', 'cmd', 'buy', 'change_team', 'radio', 'chat', 'say', 'say2'];
 
 const TECLAS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'];
 

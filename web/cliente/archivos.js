@@ -161,13 +161,28 @@ export function directo(ruta, servidor = globalThis.cs16Servidor, origen = globa
     return servidor && servidor !== origen ? servidor + ruta : ruta;
 }
 
+// Antes de bajar (o de usar lo ya guardado) se prueba la contraseña: así un error se
+// avisa claro en la pantalla de entrada y no adentro del juego.
+async function revisarClave(url) {
+    let r;
+    try {
+        r = await fetch(url, { method: 'HEAD', cache: 'no-store' });
+    } catch {
+        return;   // sin red: que siga y falle donde corresponda
+    }
+    if (r.status === 403) throw new Error('Contraseña incorrecta. Revisala y probá de nuevo.');
+    if (r.status === 429) throw new Error('Demasiados intentos con la contraseña. Esperá unos minutos y probá de nuevo.');
+}
+
 export function instalarEnganche(estadoServidor, clave = () => '') {
     window.cs16CargarArchivos = async (url, version, tamano, sink, progreso, cargarZip) => {
         url = directo(url);
         const assets = estadoServidor()?.assets;
         if (!assets?.propios) {
             const c = clave();
-            return cargarZip(c ? `${url}?clave=${encodeURIComponent(c)}` : url, version, tamano, sink, progreso);
+            const conClave = c ? `${url}?clave=${encodeURIComponent(c)}` : url;
+            await revisarClave(conClave);
+            return cargarZip(conClave, version, tamano, sink, progreso);
         }
         if (!(await estado())) throw new Error('Primero elegí tus archivos de Counter-Strike 1.6 (botón «Elegir carpeta»).');
         await volcar(sink, (b, total) => progreso('cache', b, total));
