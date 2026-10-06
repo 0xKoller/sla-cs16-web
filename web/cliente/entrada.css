@@ -16,6 +16,9 @@
 }
 .cs16-nota b { color: var(--text); font-weight: 600; }
 .cs16-nota[hidden], .cs16-salas[hidden], .cs16-archivos[hidden] { display: none; }
+/* las casillas ocultas (pantalla completa, mano en el celular): «label.check» del estilo
+   original les ponía display:flex y seguían a la vista */
+#lobby label[hidden] { display: none; }
 
 /* salas */
 .cs16-salas { margin-bottom: 14px; }
