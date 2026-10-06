@@ -18,10 +18,13 @@
 //  7. Reloj: si Chrome no entrega requestAnimationFrame (WebGL2 esperando a la GPU),
 //     el bucle no se queda 100 ms congelado. Sigue a ~60 Hz desde un worker hasta
 //     que el vsync vuelve (ver cliente/reloj.js).
+//  8. Escala: devicePixelRatio se capa a 1.5 para que el bitmap del canvas no
+//     triplique los píxeles en retina (ver cliente/escala.js).
 
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
+import { limitarEscala } from './cliente/escala.js';
 import { instalarReloj } from './cliente/reloj.js';
 
 const PUB = path.resolve(process.argv[2] || 'public');
@@ -104,9 +107,9 @@ const CAMBIOS = [
     nuevo: "throw new Error('El servidor todavía no tiene listos los archivos del juego. Probá de nuevo en un rato.')",
   },
   {
-    nombre: 'reloj sin trabar el frame',
+    nombre: 'reloj y tope de escala',
     viejo: 'const nativeRAF=window.requestAnimationFrame.bind(window),nativeCancel=window.cancelAnimationFrame.bind(window),STALL_MS=100,pending=new Map,worker=new Worker(URL.createObjectURL(new Blob(["setInterval(() => postMessage(0), 50);"],{type:"text/javascript"})));worker.onmessage=()=>{const e=performance.now();for(const r of[...pending.values()])e-r.since<STALL_MS||(pending.delete(r.id),nativeCancel(r.id),r.done||(r.done=!0,r.cb(e)))};window.requestAnimationFrame=e=>{const r={cb:e,since:performance.now(),done:!1,id:0};return r.id=nativeRAF(t=>{pending.delete(r.id),!r.done&&(r.done=!0,e(t))}),pending.set(r.id,r),r.id};window.cancelAnimationFrame=e=>{const r=pending.get(e);r&&(r.done=!0,pending.delete(e)),nativeCancel(e)};',
-    nuevo: `(${instalarReloj.toString()})(window);`,
+    nuevo: `(${limitarEscala.toString()})(window);(${instalarReloj.toString()})(window);`,
   },
 ];
 
