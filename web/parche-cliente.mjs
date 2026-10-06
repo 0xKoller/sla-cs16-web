@@ -15,10 +15,14 @@
 //     de bajar valve.zip (servidores públicos con archivos propios; ver cliente/archivos.js).
 //  6. Si la página llega por otra dirección (por ejemplo Vercel, que no pasa WebSockets),
 //     la conexión va directo al servidor del juego: window.cs16Servidor (lo pone la web).
+//  7. Reloj: si Chrome no entrega requestAnimationFrame (WebGL2 esperando a la GPU),
+//     el bucle no se queda 100 ms congelado. Sigue a ~60 Hz desde un worker hasta
+//     que el vsync vuelve (ver cliente/reloj.js).
 
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
+import { instalarReloj } from './cliente/reloj.js';
 
 const PUB = path.resolve(process.argv[2] || 'public');
 const MARCA = '/*cs16-parche-3*/';
@@ -98,6 +102,11 @@ const CAMBIOS = [
     nombre: 'mensaje sin archivos',
     viejo: "throw new Error('El servidor no tiene el paquete de archivos del juego. Ejecutá \"npm run setup\" en la PC del servidor.')",
     nuevo: "throw new Error('El servidor todavía no tiene listos los archivos del juego. Probá de nuevo en un rato.')",
+  },
+  {
+    nombre: 'reloj sin trabar el frame',
+    viejo: 'const nativeRAF=window.requestAnimationFrame.bind(window),nativeCancel=window.cancelAnimationFrame.bind(window),STALL_MS=100,pending=new Map,worker=new Worker(URL.createObjectURL(new Blob(["setInterval(() => postMessage(0), 50);"],{type:"text/javascript"})));worker.onmessage=()=>{const e=performance.now();for(const r of[...pending.values()])e-r.since<STALL_MS||(pending.delete(r.id),nativeCancel(r.id),r.done||(r.done=!0,r.cb(e)))};window.requestAnimationFrame=e=>{const r={cb:e,since:performance.now(),done:!1,id:0};return r.id=nativeRAF(t=>{pending.delete(r.id),!r.done&&(r.done=!0,e(t))}),pending.set(r.id,r),r.id};window.cancelAnimationFrame=e=>{const r=pending.get(e);r&&(r.done=!0,pending.delete(e)),nativeCancel(e)};',
+    nuevo: `(${instalarReloj.toString()})(window);`,
   },
 ];
 
