@@ -38,7 +38,11 @@ function mostrar(titulo, texto) {
         cartel.setAttribute('role', 'alertdialog');
         cartel.innerHTML = '<div class="cs16-corte-caja"><h2></h2><p></p>' +
             '<button type="button">Volver a entrar</button></div>';
-        cartel.querySelector('button').addEventListener('click', () => location.reload());
+        cartel.querySelector('button').addEventListener('click', () => {
+            // la partida ya se cortó: que el navegador no pregunte «¿salir del sitio?»
+            document.body.classList.remove('playing');
+            location.reload();
+        });
         for (const tipo of ['touchstart', 'pointerdown', 'mousedown', 'keydown']) {
             cartel.addEventListener(tipo, (e) => e.stopPropagation());
         }

@@ -226,6 +226,26 @@ window.addEventListener('keydown', (e) => {
         .catch((err) => console.error('[manos]', err));
 }, true);
 
+// ------------------------------------------------------ sin pantalla completa
+// La página ya no se pone en pantalla completa sola: al salir de ella la vista quedaba
+// trabada (y con un clic volvía a entrar). Quien quiera, la pone con el navegador.
+// Cerrar la pestaña jugando igual pide confirmación (Ctrl+W no te saca de golpe).
+function sinPantallaCompleta() {
+    const casilla = $('fullscreen');
+    if (casilla) {
+        casilla.checked = false;
+        casilla.closest('label')?.setAttribute('hidden', '');
+    }
+    guardar('csweb:fullscreen', 'false');
+    const aviso = $('lock-hint');   // hablaba de bloquear atajos en pantalla completa
+    if (aviso) aviso.hidden = true;
+    for (const li of document.querySelectorAll('#lobby .help li')) {
+        if (/pantalla completa/i.test(li.textContent)) {
+            li.innerHTML = '<kbd>Click</kbd> captura el mouse · <kbd>Esc</kbd> lo suelta · otro <kbd>Esc</kbd>: menú del juego';
+        }
+    }
+}
+
 // ------------------------------------------------------------- dos columnas
 // En pantallas anchas la entrada va en dos columnas (marca, sala y controles a la
 // izquierda; nombre, equipo y «Jugar» a la derecha) para que entre sin scrollear.
@@ -266,6 +286,7 @@ if (form && jugar && lobby && !document.querySelector('.cs16-equipo')) {
     cajaArchivos = crearArchivos();
     const manos = crearManos();
     insertarAntesDeJugar(equipo, manos.fila, manos.ayuda, cajaArchivos);
+    sinPantallaCompleta();
     armarColumnas();
 
     actualizarSalas(cajaSalas);
